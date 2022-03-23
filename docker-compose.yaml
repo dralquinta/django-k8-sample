@@ -1,0 +1,7 @@
+version: "3.3"
+services: 
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile
+    image: django-k8s:v0.0.1

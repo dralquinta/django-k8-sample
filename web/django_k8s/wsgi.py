@@ -1,5 +1,5 @@
 """
-WSGI config for django_k8s_sample project.
+WSGI config for django_k8s project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -14,11 +14,11 @@ import dotenv
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_k8s_sample.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_k8s.settings')
 
 CURRENT_DIR= pathlib.Path(__file__).resolve().parent
 BASE_DIR = CURRENT_DIR.parent
-ENV_FILE_PATH = BASE_DIR / ".venv"
+ENV_FILE_PATH = BASE_DIR / ".env"
 
 dotenv.read_dotenv(str(ENV_FILE_PATH))
 

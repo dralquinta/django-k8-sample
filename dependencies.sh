@@ -17,7 +17,7 @@
         pip3 install --upgrade pip
 
         echo '============== Installing app dependencies =============='
-        pip3 install -r requirements.txt
+        pip3 install -r web/requirements.txt
         chmod -R 775 venv
     fi
 
