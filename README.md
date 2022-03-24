@@ -34,4 +34,16 @@ For Docker.
 ![image](./img/django_ok.png)
 
 
+7. Access the folllwing site: 
+    `http://localhost:8020/admin/login/?next=/admin/`
 
+
+You will see something like this: 
+
+![](./img/django_login.png)
+
+Pass on User and Password located at .env under `DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD`
+
+8. You will see something like this now: 
+
+![](./img/django_admin.png)
