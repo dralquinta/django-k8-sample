@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: django-k8s-web
-        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.1
+        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.2
         imagePullPolicy: Always
         envFrom:
           - secretRef:
