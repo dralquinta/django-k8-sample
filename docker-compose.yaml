@@ -1,6 +1,8 @@
 version: "3.3"
 services: 
   web:
+    depends_on: 
+      - mysql
     build: 
       context: ./web
       dockerfile: Dockerfile
