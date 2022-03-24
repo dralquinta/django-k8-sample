@@ -14,6 +14,7 @@ ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ mkdir web
 For testing the deployment: 
 
 ```shell
+cd /home/ubuntu/REPOS/django-k8-sample/web
 /home/ubuntu/REPOS/django-k8-sample/venv/bin/gunicorn django_k8s.wsgi:application
 ```
 
@@ -26,6 +27,11 @@ For Docker.
 4. Write the `docker-compose.yaml`file
 5. Run `docker-compose up` This will build the image
     Note: You can run `docker system prune -a` to wipe out all
+    You can stop the container by running `docker-compose down`
+    You can force the re-build of image by running `docker-compose up --build`
+6. If everything goes fine, when opening `http://localhost:8020` will show something like this
+
+![image](./img/django_ok.png)
 
 
 
