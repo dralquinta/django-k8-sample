@@ -252,3 +252,91 @@ and if accessing to this, you'll see this:
 For do rollout deployment: 
 
 `kubectl rollout status deployment/django-k9s-web`
+
+
+---
+
+# To create an application
+
+1. Make sure your host has the MySQL Client files and binaries. In the case of ubuntu: 
+
+```shell
+Step 0: sudo apt install python3-dev build-essential
+
+Step 1: sudo apt install libssl1.1
+
+Step 2: sudo apt install libssl1.1=1.1.1f-1ubuntu2
+
+Step 3: sudo apt install libssl-dev
+
+Step 4: sudo apt install libmysqlclient-dev
+
+Step 5: pip3 install mysqlclient
+```
+
+2. Then re-run `dependencies.sh`
+
+3. Now run: (Based on: https://docs.djangoproject.com/en/4.0/intro/tutorial01/)
+
+`python3 manage.py startapp polls`
+
+
+4. Create a file under `polls/urls.py` that looks like this: 
+
+```python
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path('', views.index, name='index'),
+]
+```
+
+5. Modify file `django_k8s/urls.py` to look like this: 
+
+```python
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path('polls/', include('polls.urls')),
+    path('admin/', admin.site.urls),
+]
+```
+
+6. Rebuild, retag and push the image: 
+
+`docker tag django-k8s:v0.0.2 sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.2`
+`docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.2`
+
+
+It'll look like this: 
+
+```shell
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample/web/polls$ docker image ls
+REPOSITORY                                          TAG            IMAGE ID       CREATED         SIZE
+django-k8s                                          v0.0.2         a5e481cfe439   2 minutes ago   582MB
+sa-santiago-1.ocir.io/idhkis4m3p5e/django-example   v0.0.2         a5e481cfe439   2 minutes ago   582MB
+mysql                                               oracle         00c014d8ea9c   13 hours ago    486MB
+python                                              3.8.5-alpine   da3ea875dbcd   18 months ago   41.9MB
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample/web/polls$ docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.2
+The push refers to repository [sa-santiago-1.ocir.io/idhkis4m3p5e/django-example]
+cc9f1bced2fd: Pushed 
+f5d27dd3a9b7: Pushed 
+81bb673d2af6: Pushed 
+6b8c463dd40c: Pushed 
+50391f846464: Pushed 
+0c5b2785074b: Layer already exists 
+27da86305d5e: Layer already exists 
+798cb960efb8: Layer already exists 
+8691b6bf9361: Layer already exists 
+e2f13739ad41: Layer already exists 
+v0.0.2: digest: sha256:0126c15ccb3b830efdf47dd09b69fc27896fe84ac72c5309a298722f3ca1806c size: 2423
+```
+
+
+7. If everything went fine, then the deploy will look like this: 
+
+![](./img/polls.png)
+

@@ -6,7 +6,7 @@ services:
     build: 
       context: ./web
       dockerfile: Dockerfile
-    image: django-k8s:v0.0.1
+    image: django-k8s:v0.0.2
     environment:
       - PORT=8020
     env_file:
