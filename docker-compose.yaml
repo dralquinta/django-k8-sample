@@ -11,3 +11,12 @@ services:
       - web/.env
     ports:
       - "8020:8020"
+    command: sh -c "chmod +x /app/migrate.sh && sh /app/migrate.sh && /app/entrypoint.sh" 
+  mysql:
+    image: mysql:oracle
+    volumes:
+      - ./public:/public
+    env_file:
+      - web/.env
+
+

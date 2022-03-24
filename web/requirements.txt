@@ -5,3 +5,5 @@ django-dotenv
 psycopg2-binary
 django-storages
 boto3
+PyMySQL==0.10.0
+mysqlclient
