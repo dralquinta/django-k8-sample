@@ -60,7 +60,7 @@ Follow instructions in this link: https://www.oracle.com/webfolder/technetwork/t
 
 2. Select a region where you will do the deployment. In my case sa-santiago-1
 
-3. Create a repository: (in this case `django-example`)
+3. Create a repository: (in this case `django-sample-app-k8s` and `django-sample-nginx-k8s`)
 
 ![](./img/ocir_registry.png)
 
@@ -91,46 +91,71 @@ Login Succeeded
 5.1 Get the name of the image: 
 
 ```shell
-(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ docker image ls
-REPOSITORY   TAG            IMAGE ID       CREATED         SIZE
-django-k8s   v0.0.1         c0c60345a291   2 minutes ago   582MB
-mysql        oracle         00c014d8ea9c   10 hours ago    486MB
-python       3.8.5-alpine   da3ea875dbcd   18 months ago   41.9MB
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample/k8s_deployment$ docker image ls
+REPOSITORY         TAG             IMAGE ID       CREATED          SIZE
+django-nginx-k8s   v0.0.1          21c339a04fe3   20 seconds ago   19.9MB
+django-app-k8s     v0.0.1          4ac1b0e88b46   27 seconds ago   582MB
+mysql              oracle          bf5b46dfe369   3 days ago       486MB
+python             3.8.5-alpine    da3ea875dbcd   18 months ago    41.9MB
+nginx              1.19.0-alpine   d918ec5de862   22 months ago    19.9MB
 ```
 
 Now tag it
-`docker tag django-k8s:v0.0.1 sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.1`
+`docker tag django-app-k8s:v0.0.1 sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s:v0.0.1`
+
+and
+
+`docker tag django-nginx-k8s:v0.0.1 sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s:v0.0.1`
+
 
 It'll look like this: 
 
 ```shell
-(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ docker tag django-k8s:v0.0.1 sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.1
-(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ docker image ls
-REPOSITORY                                          TAG            IMAGE ID       CREATED          SIZE
-django-k8s                                          v0.0.1         c0c60345a291   42 minutes ago   582MB
-sa-santiago-1.ocir.io/idhkis4m3p5e/django-example   v0.0.1         c0c60345a291   42 minutes ago   582MB
-mysql                                               oracle         00c014d8ea9c   10 hours ago     486MB
-python                                              3.8.5-alpine   da3ea875dbcd   18 months ago    41.9MB
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample/k8s_deployment$ docker image ls
+REPOSITORY                                                   TAG             IMAGE ID       CREATED              SIZE
+django-nginx-k8s                                             v0.0.1          21c339a04fe3   About a minute ago   19.9MB
+sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s   v0.0.1          21c339a04fe3   About a minute ago   19.9MB
+sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s     v0.0.1          4ac1b0e88b46   About a minute ago   582MB
+django-app-k8s                                               v0.0.1          4ac1b0e88b46   About a minute ago   582MB
+mysql                                                        oracle          bf5b46dfe369   3 days ago           486MB
+python                                                       3.8.5-alpine    da3ea875dbcd   18 months ago        41.9MB
+nginx                                                        1.19.0-alpine   d918ec5de862   22 months ago        19.9MB
 ```
 
 6. Now push the image by running: 
 
-`docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.1`
+`docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s:v0.0.1`
+
+and
+
+`docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s:v0.0.1`
 
 ```shell
-docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.1The push refers to repository [sa-santiago-1.ocir.io/idhkis4m3p5e/django-example]
-769c416c8509: Pushed 
-e5559eb85182: Pushed 
-e325b7dfaa6b: Pushed 
-1fe556fa6526: Pushed 
-0e03ee088e16: Pushed 
-0c5b2785074b: Pushed 
-27da86305d5e: Pushed 
-798cb960efb8: Pushed 
-8691b6bf9361: Pushed 
-e2f13739ad41: Pushed 
-v0.0.1: digest: sha256:38023537276910bd91fa8819b144050479b268eea3673e603b4f405a71193ad5 size: 2423
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample/k8s_deployment$ docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s:v0.0.1
+The push refers to repository [sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s]
+cd891328faf6: Pushed 
+6e4a39e7acca: Pushed 
+8f6d0026c2cc: Mounted from idhkis4m3p5e/django-nginx-k8s 
+6276c65fe4d5: Mounted from idhkis4m3p5e/django-nginx-k8s 
+c52b0b636089: Mounted from idhkis4m3p5e/django-nginx-k8s 
+f2683d3e7323: Mounted from idhkis4m3p5e/django-nginx-k8s 
+678a0785e7d2: Mounted from idhkis4m3p5e/django-nginx-k8s 
+v0.0.1: digest: sha256:59083bfdef1240443ff2cd877c283f92a9ba5c28748b736ecfb57c772401a622 size: 1774
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample/k8s_deployment$ docker push sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s:v0.0.1
+The push refers to repository [sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s]
+2a72c0f0aa5e: Pushed 
+6faa2d4f8e86: Pushed 
+42f9113c3ae7: Pushed 
+deb0abe52b59: Pushed 
+412cd8383a90: Pushed 
+0c5b2785074b: Mounted from idhkis4m3p5e/django-app-k8s 
+27da86305d5e: Mounted from idhkis4m3p5e/django-app-k8s 
+798cb960efb8: Mounted from idhkis4m3p5e/django-app-k8s 
+8691b6bf9361: Mounted from idhkis4m3p5e/django-app-k8s 
+e2f13739ad41: Mounted from idhkis4m3p5e/django-app-k8s 
+v0.0.1: digest: sha256:bd99d9ee1729a126cc255a52531c34097c47b51d74a1da2ef1762a264d0dfa9c size: 2423
 ```
+
 
 After image is pushed, you will see it on OCIR like this: 
 
@@ -198,6 +223,11 @@ secret/ocirsecret created
 3. Deploy the container: 
 
 `kubectl apply -f k8s_deployment/apps/django-k8s-web.yaml`
+
+
+4. If everything went fine, this is what you should get: 
+
+![](./img/k8_ok.png)
 
 
 # Database side
