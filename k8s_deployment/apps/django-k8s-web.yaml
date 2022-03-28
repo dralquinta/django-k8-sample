@@ -5,7 +5,7 @@ metadata:
   labels:
     app: django-k8s-web-deployment
 spec:
-  replicas: 5
+  replicas: 3
   selector:
     matchLabels:
       app: django-k8s-web-deployment
@@ -23,6 +23,11 @@ spec:
               name: django-k8s-web-prod-env
         ports:
         - containerPort: 8000
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
         env:
           - name: PORT
             value: "8000"
@@ -57,7 +62,7 @@ spec:
   selector:
     matchLabels:
       app: nginx-deployment
-  replicas: 2 
+  replicas: 3 
   template:
     metadata:
       labels:
@@ -69,6 +74,11 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 80
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
       imagePullSecrets:
         - name: ocirsecret
 
