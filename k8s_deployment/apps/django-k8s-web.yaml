@@ -16,16 +16,16 @@ spec:
     spec:
       containers:
       - name: django-k8s-web
-        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-example:v0.0.2
+        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s:v0.0.1
         imagePullPolicy: Always
         envFrom:
           - secretRef:
               name: django-k8s-web-prod-env
         ports:
-        - containerPort: 8020
+        - containerPort: 8000
         env:
           - name: PORT
-            value: "8020"
+            value: "8000"
       imagePullSecrets:
         - name: ocirsecret
 
@@ -37,6 +37,48 @@ metadata:
   name: django-k8s-web-service
   labels:
     app: django-k8s-web-deployment
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
+
+  selector:
+    app: django-k8s-web-deployment
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  replicas: 2 
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx
+        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s:v0.0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+      imagePullSecrets:
+        - name: ocirsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service-lbaas
+  labels:
+    app: nginx-deployment
   annotations:
     service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
     service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
@@ -47,7 +89,7 @@ spec:
   - name: http
     protocol: TCP
     port: 80
-    targetPort: 8020
+    targetPort: 80
 
   selector:
-    app: django-k8s-web-deployment
+    app: nginx-deployment
