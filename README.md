@@ -370,3 +370,104 @@ v0.0.2: digest: sha256:0126c15ccb3b830efdf47dd09b69fc27896fe84ac72c5309a298722f3
 
 ![](./img/polls.png)
 
+
+
+---
+
+# Pod Autoscaling
+
+To implement pod horizontal autoscaling first we need the metrics server on a cluster using Kubectl. To do so: 
+
+
+0. Make sure that the Deployment where you are applying the autoscaler contains definitions for both limits and requests on the CPU side. If not, the readiness of the pod will not be computed and the autoscaler will fail. 
+
+This is an excerpt of the yaml file: 
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-k8s-web-deployment
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-k8s-web-deployment
+  template:
+    metadata:
+      labels:
+        app: django-k8s-web-deployment
+    spec:
+      containers:
+      - name: django-k8s-web
+        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s:v0.0.1
+        imagePullPolicy: Always
+        envFrom:
+          - secretRef:
+              name: django-k8s-web-prod-env
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+        env:
+          - name: PORT
+            value: "8000"
+      imagePullSecrets:
+        - name: ocirsecret
+```
+
+
+1. Execute: 
+
+`kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/<version-number>/components.yaml`
+
+or: 
+
+`kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml`
+
+Where: 
+<version-number>: The version of the helm chart to install. Versions available here: https://github.com/kubernetes-sigs/metrics-server/releases
+
+For this case: 
+
+```shell
+
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+serviceaccount/metrics-server created
+clusterrole.rbac.authorization.k8s.io/system:aggregated-metrics-reader created
+clusterrole.rbac.authorization.k8s.io/system:metrics-server created
+rolebinding.rbac.authorization.k8s.io/metrics-server-auth-reader created
+clusterrolebinding.rbac.authorization.k8s.io/metrics-server:system:auth-delegator created
+clusterrolebinding.rbac.authorization.k8s.io/system:metrics-server created
+service/metrics-server created
+deployment.apps/metrics-server created
+apiservice.apiregistration.k8s.io/v1beta1.metrics.k8s.io created
+
+```
+
+2. To make sure is running, run: 
+
+```shell
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ kubectl get deployment metrics-server -n kube-system
+NAME             READY   UP-TO-DATE   AVAILABLE   AGE
+metrics-server   1/1     1            1           46s
+
+```
+
+3. Deploy Horizontal Pod Autoscaling on top of our deployments: 
+
+`kubectl autoscale deployment django-k8s-web-deployment --cpu-percent=10 --min=1 --max=10`
+
+```shell
+(venv) ubuntu@dalquintubuntuarm:~/REPOS/django-k8-sample$ kubectl autoscale deployment django-k8s-web-deployment --cpu-percent=10 --min=1 --max=10
+horizontalpodautoscaler.autoscaling/django-k8s-web-deployment autoscaled
+```
+
+`kubectl autoscale deployment nginx-deployment --cpu-percent=10 --min=1 --max=10`
+ 
+In this case, we will scale the pods from 1 to 10 whenever the CPU% is larger than 10%
