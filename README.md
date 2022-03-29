@@ -471,3 +471,17 @@ horizontalpodautoscaler.autoscaling/django-k8s-web-deployment autoscaled
 `kubectl autoscale deployment nginx-deployment --cpu-percent=10 --min=1 --max=10`
  
 In this case, we will scale the pods from 1 to 10 whenever the CPU% is larger than 10%
+
+
+To do load testing, use BusyBox like this: 
+
+```shell
+
+kubectl run -i --tty load-generator-X --rm --image=busybox:1.28 --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://LBAAS_PUBLIC_IP/polls/; done"
+
+```
+
+Where: 
+
+X: scale this up as much as needed to generate an increase on load
+LBAAS_PUBLIC_IP: Get this from the console or from the service
