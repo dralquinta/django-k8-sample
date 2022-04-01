@@ -26,8 +26,6 @@ Finally run:
 ```shell
 $ sudo runuser -l ubuntu -c 'oci setup repair-file-permissions --file /home/ubuntu/.oci/config'
 ```
-Your OCI config file should look like this:
-
 
 Installing Docker:
 ```shell
