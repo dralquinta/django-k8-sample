@@ -1,6 +1,78 @@
 # django-k8-sample
 This is a sample django project deployable to Oracle Kubernetes Engine
 
+# Getting Started on ubuntu
+
+Configuring OCI CLI:
+```shell
+$ sudo runuser -l ubuntu -c 'mkdir -p /home/ubuntu/oci_cli'
+$ sudo runuser -l ubuntu -c 'wget https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh'
+$ sudo runuser -l ubuntu -c 'chmod +x install.sh'
+$ sudo runuser -l ubuntu -c '/home/ubuntu/install.sh --install-dir /home/ubuntu/oci_cli/lib/oracle-cli --exec-dir /home/ubuntu/oci_cli/bin --accept-all-defaults'
+```
+
+Finish the OCI CLI configuration by generating an OCI config file in ~/.oci/config. Your config file should look something like this:
+
+```shell 
+[DEFAULT]
+user=ocid1.user.oc1..fooruser
+fingerprint=11:32:10:d8:52:43:dd:86:0a:04:0f:47:23:be:72:70
+tenancy=ocid1.tenancy.oc1..bartenancy
+region=re-region-1
+key_file=/foo/bar/path/api_private_key.pem
+```
+Finally run: 
+
+```shell
+$ sudo runuser -l ubuntu -c 'oci setup repair-file-permissions --file /home/ubuntu/.oci/config'
+```
+
+Installing Docker:
+```shell
+$ sudo apt-get update
+
+$ sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+$ sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+$ sudo apt install docker.io -y
+```
+
+Docker post-installation:
+```
+$  sudo usermod -a -G docker $USER
+$  sudo systemctl enable docker.service
+$  sudo systemctl start docker.service
+$  sudo chmod 666 /var/run/docker.sock
+```
+
+Installing pip3:
+```shell
+$ sudo apt install python3-pip
+```
+
+Installing kubectl:
+```shell
+$ sudo apt-get update
+$ sudo apt-get install -y apt-transport-https ca-certificates curl
+$ sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+$ echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+$ sudo apt-get update
+$ sudo apt-get install -y kubectl
+```
+
+Installking k9s (optional):
+```shell
+$ mkdir -p /home/ubuntu/k9s_installer
+$ wget https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_arm64.tar.gz -P /home/ubuntu/k9s_installer
+$ tar -xvf /home/ubuntu/k9s_installer/k9* -C /home/ubuntu/k9s_installer
+$ sudo cp /home/ubuntu/k9s_installer/k9s /usr/bin
+$ rm -rf /home/ubuntu/k9s_installer
+```
 
 Commands ran: 
 
@@ -66,7 +138,7 @@ Follow instructions in this link: https://www.oracle.com/webfolder/technetwork/t
 
 4. Login into OCIR with docker CLI
 
-`docker login sa-santiago-1.ocir.io``
+`$ docker login sa-santiago-1.ocir.io`
 
 Username: <tenancy-namespace>/oracleidentitycloudservice/john.doe@domain.com
 Password: auth-token from step 1. 
