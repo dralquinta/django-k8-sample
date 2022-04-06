@@ -1,0 +1,52 @@
+name: Testing Django & MySQL
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  django_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+    env:
+      DJANGO_SECRET_KEY: test-key
+      MYSQL_DB: django
+      MYSQL_USER: npieri
+      MYSQL_PASSWORD: W3lcome!
+      MYSQL_HOST: 10.0.2.70
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_PASSWORD: W3lcome!
+    services:
+      mysql_main:
+        image: mysql:oracle
+        env:
+          MYSQL_DB: ${{ env.MYSQL_DB }}
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_HOST: ${{ env.MYSQL_HOST }}
+          MYSQL_PORT: ${{ env.MYSQL_PORT }}
+          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run Tests
+        run: |
+          python manage.py test

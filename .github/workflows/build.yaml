@@ -1,0 +1,124 @@
+name: Build Containers & Push to OCIR
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  test_job:
+    uses: nicolinap/django-k8-sample/.github/workflows/test.yaml@master
+  build:
+    runs-on: ubuntu-latest
+    needs: [test_job]
+    env:
+      DJANGO_SUPERUSER_USERNAME: dalquint
+      DJANGO_SUPERUSER_PASSWORD: d3nny4lqu1nTa
+      DJANGO_SUPERUSER_EMAIL: dralquinta@gmail.com
+      DJANGO_SECRET_KEY: _j&s*g&icq!a&vc8-y5zlhn-r!)o+jjoz(8zx=zyjws2mckk2c
+
+      MYSQL_READY: 1
+      MYSQL_DB: django
+      MYSQL_USER: root
+      MYSQL_PASSWORD: W3lcome!
+      MYSQL_HOST: 10.0.1.99
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_PASSWORD: W3lcome!
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Login to OCIR 
+        run:  echo ${{ secrets.OCIR_PASS }} | docker login -u ${{ secrets.OCIR_LOGIN }} --password-stdin lhr.ocir.io
+      - name: Build container image
+        working-directory: ./web
+        env: 
+          DJANGO_SUPERUSER_USERNAME: ${{ env.DJANGO_SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ env.DJANGO_SUPERUSER_PASSWORD }}
+          DJANGO_SUPERUSER_EMAIL: ${{ env.DJANGO_SUPERUSER_EMAIL }}
+          DJANGO_SECRET_KEY: ${{ env.DJANGO_SECRET_KEY }}
+
+          MYSQL_READY: ${{ env.MYSQL_READY }}
+          MYSQL_DB: ${{ env.MYSQL_DB }}
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_HOST: ${{ env.MYSQL_HOST }}
+          MYSQL_PORT: ${{ env.MYSQL_PORT }}
+          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+        run: |
+
+          touch .env
+          echo $env >> .env
+          
+          sudo apt-get install qemu binfmt-support qemu-user-static
+
+          docker buildx build --platform linux/arm64 -f Dockerfile -t lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:latest .
+          docker buildx build --platform linux/arm64 -f Dockerfile -t lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:${GITHUB_SHA::7}-${GITHUB_RUN_ID::5} .
+
+      - name: Push image
+        run: |
+
+          docker push lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:latest
+          docker push lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:${GITHUB_SHA::7}-${GITHUB_RUN_ID::5}
+
+      - name: Install OCI CLI
+        run: |
+          mkdir -p ~/.oci
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
+          echo "${{ secrets.OCI_KEY_FILE }}" > ~/.oci/key.pem
+
+          echo "${{ secrets.OCI_KEY_FILE }}"  >> $GITHUB_PATH
+          echo "${{ secrets.OCI_CONFIG }}"  >> $GITHUB_PATH
+          
+          mkdir -p ~/oci_cli/bin
+          curl -L -O https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh
+          chmod +x install.sh
+          ./install.sh --accept-all-defaults
+          
+          echo "/home/runner/bin" >> "/home/runner/oci_cli/bin/oci-cli-scripts"
+          echo "/home/runner/bin" >> $GITHUB_PATH
+          
+          exec -l $SHELL
+
+      - name: Install kubectl
+        run: |
+          oci -v
+
+          oci setup repair-file-permissions --file ~/.oci/config
+          oci setup repair-file-permissions --file ~/.oci/key.pem
+
+          mkdir -p ~/.kube/
+          curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x ./kubectl
+          mv ./kubectl /usr/local/bin
+
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+
+      - name: Test
+        id: bastion
+        run: |
+
+          echo "${{ secrets.ID_RSA }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          docker images
+          
+          ssh-keyscan -H host.bastion.uk-london-1.oci.oraclecloud.com >> ~/.ssh/known_hosts
+          
+          ssh -fN -i ~/.ssh/id_rsa -L 6443:10.0.1.224:6443 ocid1.bastionsession.oc1.uk-london-1.amaaaaaatwfhi7ya4ttxyh2bnv6bqaqhzxyya4xblmhx3gsxesqxzgzqucza@host.bastion.uk-london-1.oci.oraclecloud.com
+          kubectl version
+
+          kubectl set image deployment/django-k8s-web-deployment django-k8s-web=lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:${GITHUB_SHA::7}-${GITHUB_RUN_ID::5}
+          
+          kubectl get deployments
+
+          kubectl rollout restart deployment/django-k8s-web-deployment
+          kubectl rollout status deployment/django-k8s-web-deployment
+
+          sleep 1m
+          export SINGLE_POD_NAME=$(kubectl get pod -l app=django-k8s-web-deployment -o jsonpath="{.items[1].metadata.name}")
+          kubectl wait --for=condition=ready pod/$SINGLE_POD_NAME --timeout=90s
+          kubectl exec -it $SINGLE_POD_NAME -- sh /app/migrate.sh
+
+          kubectl get pods
