@@ -560,6 +560,8 @@ LBAAS_PUBLIC_IP: Get this from the console or from the service
 
 ---
 
+# Shared File System
+
 Prerequisites:
 - Pre-created Mount Target
 - Pre-created File System for Nginx static content
