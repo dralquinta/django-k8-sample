@@ -1,3 +1,79 @@
+# Persistent Volume and Persistent Volume Claim are attached
+# to the kubernetes cluster and must be created before deployment
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oci-fss
+provisioner: oracle.com/oci-fss
+parameters:
+  mntTargetId: ocid1.mounttarget.oc1.uk_london_1.aaaaacvippx2taaqnruhellqojxwiotvnmwwy33omrxw4ljrfvqwiljr
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: pv-fss-app
+spec:
+ storageClassName: oci-fss
+ capacity:
+  storage: 100Gi
+ accessModes:
+  - ReadWriteMany
+ mountOptions:
+  - nosuid
+ nfs:
+  server: 10.0.10.254            # Mount private ip
+  path: "/FileSystemApp"         # File system export path
+  readOnly: false
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: pv-fss-nginx
+spec:
+ storageClassName: oci-fss
+ capacity:
+  storage: 100Gi
+ accessModes:
+  - ReadWriteMany
+ mountOptions:
+  - nosuid
+ nfs:
+  server: 10.0.10.254              
+  path: "/FileSystemNGINX"         
+  readOnly: false
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: pvc-fss-app
+spec:
+ storageClassName: oci-fss
+ accessModes:
+ - ReadWriteMany
+ resources:
+  requests:
+    storage: 100Gi
+ volumeName: pv-fss-app
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: pvc-fss-nginx
+spec:
+ storageClassName: oci-fss
+ accessModes:
+ - ReadWriteMany
+ resources:
+  requests:
+    storage: 100Gi
+ volumeName: pv-fss-nginx
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
