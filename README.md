@@ -574,33 +574,34 @@ In order to input your `Secrets` navigate to the main page of the repository, cl
 
 The following variables Secrets were added onto this repo:
 
-- The variables included in the Django .env file:
+**The variables included in the Django .env file:**
+```
+- DJANGO_SECRET_KEY : Your Django Secret Key (`str`)
+- DJANGO_SUPERUSER_EMAIL : Your Django superuser email (`str`)
+- DJANGO_SUPERUSER_PASSWORD: Your Django superuser password (`str`)
+- DJANGO_SUPERUSER_USERNAME: Your Django superuser username (`str`)
 
-    - DJANGO_SECRET_KEY : Your Django Secret Key (`str`)
-    - DJANGO_SUPERUSER_EMAIL : Your Django superuser email (`str`)
-    - DJANGO_SUPERUSER_PASSWORD: Your Django superuser password (`str`)
-    - DJANGO_SUPERUSER_USERNAME: Your Django superuser username (`str`)
-
-    - MYSQL_DB: The name of the database (`str`)
-    - MYSQL_HOST: The IP of the database (`str`)
-    - MYSQL_PASSWORD: The database password (`str`)
-    - MYSQL_PORT: The database port (`str`)
-    - MYSQL_READY: Whether the database exists (`int`)
-    - MYSQL_ROOT_PASSWORD: The database root password (`str`)
-    - MYSQL_USER: Name of the database user (`str`)
+- MYSQL_DB: The name of the database (`str`)
+- MYSQL_HOST: The IP of the database (`str`)
+- MYSQL_PASSWORD: The database password (`str`)
+- MYSQL_PORT: The database port (`str`)
+- MYSQL_READY: Whether the database exists (`int`)
+- MYSQL_ROOT_PASSWORD: The database root password (`str`)
+- MYSQL_USER: Name of the database user (`str`)
+```
 
   *Any (`str`) objects included above must not contain any type of quotes.*
 
- - OCI Specific variables:
- 
-    - ID_RSA: The key located in ~/.ssh/id_rsa on your OCI instance 
-    - ID_RSA_PUB: The key located in ~/.ssh/id_rsa.pub on your OCI instance 
-    - KUBECONFIG: The kube config file located in .kube/config of your instance 
-    - OCIR_LOGIN: The login to your Oracle Container Registry account. Please include the single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
-    - OCIR_PASS: The password to your Oracle Container Registry accounr. Please include the single quotes in the secret description. Eg: '12kli2/a3ete3sd-u'
-    - OCI_CONFIG: Your OCI config file found under ~/.oci/config on your OCI instance. 
-    - OCI_KEY_FILE: Your OCI .pem key which found under ~/.oci/key.pem or ~/.oci/API_KEYS/key.pem on your OCI instance
-
+**OCI Specific variables:**
+```
+- ID_RSA: The key located in ~/.ssh/id_rsa on your OCI instance 
+- ID_RSA_PUB: The key located in ~/.ssh/id_rsa.pub on your OCI instance 
+- KUBECONFIG: The kube config file located in .kube/config of your instance 
+- OCIR_LOGIN: The login to your Oracle Container Registry account. Please include the single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
+- OCIR_PASS: The password to your Oracle Container Registry accounr. Please include the single quotes in the secret description. Eg: '12kli2/a3ete3sd-u'
+- OCI_CONFIG: Your OCI config file found under ~/.oci/config on your OCI instance. 
+- OCI_KEY_FILE: Your OCI .pem key which found under ~/.oci/key.pem or ~/.oci/API_KEYS/key.pem on your OCI instance
+```
 The Secrets should then appear like so:
 
 ![](./img/secrets.png)
