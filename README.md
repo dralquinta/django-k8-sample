@@ -560,6 +560,57 @@ LBAAS_PUBLIC_IP: Get this from the console or from the service
 
 ---
 
+# Github Actions
+
+The github actions code can be found [here](.github/workflows). 
+
+The actions were generated to provide a way for automatic deployment. They include:
+- A [test](.github/workflows/test.yaml) file which runs any tests included in [manage.py](web/manage.py) to ensure that Django is configured correctly and
+- A [build](.github/workflows/build.yaml) file which builds all necessary parts for the deployment onto a linux/arm64 OKE cluster. 
+
+To run the actions correctly you will need to configure the following [Github Actions Secrtes](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions) in your own repository. The link included provides a guide on how to do so. 
+
+In order to input your `Secrets` navigate to the main page of the repository, click on the `Settings` tab, click `Secrets` and then click on `Add a new secret`.
+
+The following variables Secrets were added onto this repo:
+
+**The variables included in the Django .env file:**
+
+- **DJANGO_SECRET_KEY**: Your Django Secret Key 
+- **DJANGO_SUPERUSER_EMAIL**: Your Django superuser email 
+- **DJANGO_SUPERUSER_PASSWORD**: Your Django superuser password 
+- **DJANGO_SUPERUSER_USERNAME**: Your Django superuser username 
+
+- **MYSQL_DB**: The name of the database 
+- **MYSQL_HOST**: The IP of the database 
+- **MYSQL_PASSWORD**: The database password 
+- **MYSQL_PORT**: The database port 
+- **MYSQL_READY**: Whether the database exists 
+- **MYSQL_ROOT_PASSWORD**: The database root password 
+- **MYSQL_USER**: Name of the database user 
+
+
+**OCI Specific variables:**
+
+- **ID_RSA**: The key located in ~/.ssh/id_rsa on your OCI instance 
+- **ID_RSA_PUB**: The key located in ~/.ssh/id_rsa.pub on your OCI instance 
+- **KUBECONFIG**: The kube config file located in .kube/config of your instance 
+- **OCIR_LOGIN**: The login to your Oracle Container Registry account. Please include the single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
+- **OCIR_PASS**: The password to your Oracle Container Registry accounr. Please include the single quotes in the secret description. Eg: '12kli2/a3ete3sd-u'
+- **OCI_CONFIG**: Your OCI config file found under ~/.oci/config on your OCI instance. 
+- **OCI_KEY_FILE**: Your OCI .pem key which found under ~/.oci/key.pem or ~/.oci/API_KEYS/key.pem on your OCI instance
+
+The Secrets should then appear like so:
+
+![](./img/secrets.png)
+
+
+Please note that for KUBECONFIG to work you must change the `server: https://x.x.x.x:6443` included in your original config file to `server: https://127.0.0.1:6443` and then upload the file as a secret. 
+
+In order to connect to the private OKE cluster a bastion session is being created and destroyed in the last step of the deployment. Make sure to change the bastion id `--bastion-id "ocid1.bastion.oc1.uk-london-1.amaaaaaatwfhi7yan2s3sdth7yjcw4hpa3o32uebmrlideeocv5xl2lajknq"` in line 96 of the [build](.github/workflows/build.yaml) file to contain your own bastion id. 
+
+Lastly do make sure to also change the image names in the [build](.github/workflows/build.yaml) file to correspond to your container repository name. 
+
 # Shared File System
 
 Prerequisites:
@@ -653,9 +704,3 @@ Now, let's test the newly created File System by typing <load-balancer-public-ip
 3. To Access static content served by NGINX, go to : <load-balancer-public-ip/static/>
 
 ![](./img/nginx_static.png)
-
-
-
-
-
-

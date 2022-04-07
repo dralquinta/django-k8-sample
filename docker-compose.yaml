@@ -4,7 +4,7 @@ services:
     build: 
       context: ./web/nginx 
       dockerfile: Dockerfile
-    image: django-nginx-k8s:v0.0.1
+    image: django-nginx-k8s:latest
     ports:
       - 1300:80
     volumes:
@@ -18,7 +18,7 @@ services:
     build: 
       context: ./web
       dockerfile: Dockerfile
-    image: django-app-k8s:v0.0.1
+    image: django-app-k8s:latest
     environment:
       - PORT=8000
     env_file:
@@ -27,6 +27,7 @@ services:
       - "8000:8000"
     command: sh -c "chmod +x /app/migrate.sh && sh /app/migrate.sh && /app/entrypoint.sh"
   mysql:
+    restart: always
     image: mysql:oracle
     volumes:
       - ./public:/public
@@ -35,5 +36,3 @@ services:
 
 volumes:
   static_volume:
-
-

@@ -1,0 +1,120 @@
+name: Build Containers & Push to OCIR
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  test_job:
+    uses: nicolinap/django-k8-sample/.github/workflows/test.yaml@main
+  build:
+    runs-on: ubuntu-latest
+    needs: [test_job]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Login to OCIR 
+        run: echo ${{ secrets.OCIR_PASS }} | docker login -u ${{ secrets.OCIR_LOGIN }} --password-stdin lhr.ocir.io
+      - name: Build container image
+        working-directory: ./web
+        env: 
+          DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+          DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+
+          MYSQL_READY: ${{ secrets.MYSQL_READY }}
+          MYSQL_DB: ${{ secrets.MYSQL_DB }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+        run: |
+
+          touch .env
+          echo $env >> .env
+          
+          sudo apt-get install qemu binfmt-support qemu-user-static
+
+          docker buildx build --platform linux/arm64 -f Dockerfile -t lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:latest .
+          docker buildx build --platform linux/arm64 -f Dockerfile -t lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:${GITHUB_SHA::7}-${GITHUB_RUN_ID::5} .
+
+      - name: Push image
+        run: |
+
+          docker push lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:latest
+          docker push lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:${GITHUB_SHA::7}-${GITHUB_RUN_ID::5}
+
+      - name: Install OCI CLI
+        run: |
+          mkdir -p ~/.oci
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
+          echo "${{ secrets.OCI_KEY_FILE }}" > ~/.oci/key.pem
+
+          echo "${{ secrets.OCI_KEY_FILE }}"  >> $GITHUB_PATH
+          echo "${{ secrets.OCI_CONFIG }}"  >> $GITHUB_PATH
+          
+          mkdir -p ~/oci_cli/bin
+          curl -L -O https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh
+          chmod +x install.sh
+          ./install.sh --accept-all-defaults
+          
+          echo "/home/runner/bin" >> "/home/runner/oci_cli/bin/oci-cli-scripts"
+          echo "/home/runner/bin" >> $GITHUB_PATH
+          
+          exec -l $SHELL
+
+      - name: Install kubectl
+        run: |
+          oci -v
+
+          oci setup repair-file-permissions --file ~/.oci/config
+          oci setup repair-file-permissions --file ~/.oci/key.pem
+
+          mkdir -p ~/.kube/
+          curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+          chmod +x ./kubectl
+          mv ./kubectl /usr/local/bin
+
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+
+      - name: Test
+        id: bastion
+        run: |
+
+          echo "${{ secrets.ID_RSA }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.ID_RSA_PUB }}" > ~/.ssh/id_rsa.pub
+          chmod 600 ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa.pub
+
+          docker images
+
+          export SESSION_ID=$( oci bastion session create-port-forwarding --bastion-id "ocid1.bastion.oc1.uk-london-1.amaaaaaatwfhi7yan2s3sdth7yjcw4hpa3o32uebmrlideeocv5xl2lajknq" --display-name activetunnel --ssh-public-key-file ~/.ssh/id_rsa.pub --key-type PUB --target-private-ip 10.0.1.224 --target-port 6443  | jq '.data.id')
+          SESSION_ID=`sed -e 's/^"//' -e 's/"$//' <<<"$SESSION_ID"`
+          echo $SESSION_ID
+
+          ssh-keyscan -H host.bastion.uk-london-1.oci.oraclecloud.com >> ~/.ssh/known_hosts
+          
+          sleep 30s
+          ssh -fN -i ~/.ssh/id_rsa -L 6443:10.0.1.224:6443 $SESSION_ID@host.bastion.uk-london-1.oci.oraclecloud.com
+          kubectl version
+
+          kubectl set image deployment/django-k8s-web-deployment django-k8s-web=lhr.ocir.io/idhkis4m3p5e/django-sample-app-k8s:${GITHUB_SHA::7}-${GITHUB_RUN_ID::5}
+          
+          kubectl get deployments
+
+          kubectl rollout restart deployment/django-k8s-web-deployment
+          kubectl rollout status deployment/django-k8s-web-deployment
+
+          sleep 1m
+          export SINGLE_POD_NAME=$(kubectl get pod -l app=django-k8s-web-deployment -o jsonpath="{.items[1].metadata.name}")
+          kubectl wait --for=condition=ready pod/$SINGLE_POD_NAME --timeout=90s
+          kubectl exec -it $SINGLE_POD_NAME -- sh /app/migrate.sh
+
+          kubectl get pods
+
+          oci bastion session delete --session-id $SESSION_ID --force
