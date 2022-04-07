@@ -574,11 +574,9 @@ You will need:
 
 ![](./img/export_path.png)
 
-Deploying the File System and connecting to it is taken care of by django-k8s-web.yaml.
+First of all, adjust the specific values for your File System inside django-k8-sample/k8s_deployment/Storage
 
-What you need is to adjust the specific values for your file system inside django-k8s-web.yaml
-
-1. Paste your Mount Target OCID:
+1. Paste your Mount Target OCID to StorageClass.yaml:
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -589,7 +587,7 @@ provisioner: oracle.com/oci-fss
 parameters:
   mntTargetId: MY_MOUNT_TARGET_OCID
 ```
-2. Paste your Mount Target IP and export path for both File Systems
+2. Paste your Mount Target IP and export path to PV.yaml:
 
 ```yaml
 apiVersion: v1
@@ -612,23 +610,33 @@ spec:
 
 The default mount paths are:
 - for NGINX, /home/app/microservice/static
-- for django app, app/media/
+- for Django app, app/media/
 
 Rebuild, retag and push the image to the repository.
 
-Deploy the application on the Kubernetes cluster:
+Deploy the Persistent Volume storage and its components to the Kubernetes cluster:
 
-`kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web.yaml`
+`kubectl apply -f ~/django-k8-sample/k8s_deployment/Storage`
+
+You should see:
+
+```shell
+ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment$ k apply -f Storage
+persistentvolume/pv-fss-app created
+persistentvolume/pv-fss-nginx created
+persistentvolumeclaim/pvc-fss-app craeted
+persistentvolumeclaim/pvc-fss-nginx craeted
+storageclass.storage.k8s.io/oci-fss craeted
+```
+
+Secondly Deploy the application to the Kubernetes cluster with django-k8s-web-file-system.yaml:
+
+`kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-file-system.yaml`
 
 It should look like this:
 
 ```shell
 ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment/apps$ k apply -f django-k8s-web.yaml 
-storageclass.storage.k8s.io/oci-fss created
-persistentvolume/pv-fss-app created
-persistentvolume/pv-fss-nginx created
-persistentvolumeclaim/pvc-fss-app created
-persistentvolumeclaim/pvc-fss-nginx created
 deployment.apps/django-k8s-web-deployment created
 service/django-k8s-web-service created
 deployment.apps/nginx-deployment created

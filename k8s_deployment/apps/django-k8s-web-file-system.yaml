@@ -16,13 +16,16 @@ spec:
     spec:
       containers:
       - name: django-k8s-web
-        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-app-k8s:v0.0.1
+        image: lhr.ocir.io/idhkis4m3p5e/k8s_test:latest
         imagePullPolicy: Always
         envFrom:
           - secretRef:
               name: django-k8s-web-prod-env
         ports:
         - containerPort: 8000
+        volumeMounts:
+        - name: nfs-mount
+          mountPath: "app/media/"
         resources:
           limits:
             cpu: 50m
@@ -31,6 +34,11 @@ spec:
         env:
           - name: PORT
             value: "8000"
+      volumes:
+      - name: nfs-mount
+        persistentVolumeClaim:
+          claimName: pvc-fss-app
+          readOnly: false
       imagePullSecrets:
         - name: ocirsecret
 
@@ -70,15 +78,23 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: sa-santiago-1.ocir.io/idhkis4m3p5e/django-sample-nginx-k8s:v0.0.1
+        image: lhr.ocir.io/idhkis4m3p5e/k8s_t:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
+        volumeMounts:
+        - name: nfs-mount
+          mountPath: "/home/app/microservice/static"
         resources:
           limits:
             cpu: 50m
           requests:
             cpu: 20m
+      volumes:
+      - name: nfs-mount
+        persistentVolumeClaim:
+          claimName: pvc-fss-nginx
+          readOnly: false
       imagePullSecrets:
         - name: ocirsecret
 

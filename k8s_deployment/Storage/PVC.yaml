@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: pvc-fss-app
+spec:
+ storageClassName: oci-fss
+ accessModes:
+ - ReadWriteMany
+ resources:
+  requests:
+    storage: 100Gi
+ volumeName: pv-fss-app
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: pvc-fss-nginx
+spec:
+ storageClassName: oci-fss
+ accessModes:
+ - ReadWriteMany
+ resources:
+  requests:
+    storage: 100Gi
+ volumeName: pv-fss-nginx
