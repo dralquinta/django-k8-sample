@@ -10,24 +10,16 @@ jobs:
     defaults:
       run:
         working-directory: ./web
-    env:
-      DJANGO_SECRET_KEY: test-key
-      MYSQL_DB: django
-      MYSQL_USER: npieri
-      MYSQL_PASSWORD: W3lcome!
-      MYSQL_HOST: 10.0.2.70
-      MYSQL_PORT: 3306
-      MYSQL_ROOT_PASSWORD: W3lcome!
     services:
       mysql_main:
         image: mysql:oracle
         env:
-          MYSQL_DB: ${{ env.MYSQL_DB }}
-          MYSQL_USER: ${{ env.MYSQL_USER }}
-          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
-          MYSQL_HOST: ${{ env.MYSQL_HOST }}
-          MYSQL_PORT: ${{ env.MYSQL_PORT }}
-          MYSQL_ROOT_PASSWORD: ${{ env.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DB: ${{ secrets.MYSQL_DB }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
 
         ports:
           - 3306:3306
