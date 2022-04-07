@@ -557,3 +557,105 @@ Where:
 
 X: scale this up as much as needed to generate an increase on load
 LBAAS_PUBLIC_IP: Get this from the console or from the service
+
+---
+
+# Shared File System
+
+Prerequisites:
+- Pre-created Mount Target
+- Pre-created File System for Nginx static content
+- Pre-created File System for Django app media content
+
+You will need:
+- OCID of Mount Target
+- IP Address of Mount Target
+- An export path of your File Systems
+
+![](./img/export_path.png)
+
+First of all, adjust the specific values for your File System inside django-k8-sample/k8s_deployment/Storage
+
+1. Paste your Mount Target OCID to StorageClass.yaml:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oci-fss
+provisioner: oracle.com/oci-fss
+parameters:
+  mntTargetId: MY_MOUNT_TARGET_OCID
+```
+2. Paste your Mount Target IP and export path to PV.yaml:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: pv-fss-app
+spec:
+ storageClassName: oci-fss
+ capacity:
+  storage: 100Gi
+ accessModes:
+  - ReadWriteMany
+ mountOptions:
+  - nosuid
+ nfs:
+  server: MY_MOUNT_TARGET_IP          
+  path: MY_FILE_SYSTEM_EXPORT_PATH         
+  readOnly: false
+```
+
+The default mount paths are:
+- for NGINX, /home/app/microservice/static
+- for Django app, app/media/
+
+Rebuild, retag and push the image to the repository.
+
+Deploy the Persistent Volume storage and its components to the Kubernetes cluster:
+
+`kubectl apply -f ~/django-k8-sample/k8s_deployment/Storage`
+
+You should see:
+
+```shell
+ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment$ k apply -f Storage
+persistentvolume/pv-fss-app created
+persistentvolume/pv-fss-nginx created
+persistentvolumeclaim/pvc-fss-app craeted
+persistentvolumeclaim/pvc-fss-nginx craeted
+storageclass.storage.k8s.io/oci-fss craeted
+```
+
+Secondly Deploy the application to the Kubernetes cluster with django-k8s-web-file-system.yaml:
+
+`kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-file-system.yaml`
+
+It should look like this:
+
+```shell
+ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment/apps$ k apply -f django-k8s-web.yaml 
+deployment.apps/django-k8s-web-deployment created
+service/django-k8s-web-service created
+deployment.apps/nginx-deployment created
+service/nginx-service-lbaas created
+```
+Now, let's test the newly created File System by typing <load-balancer-public-ip/upload> into the browser:
+
+1. Choose a file to upload to the File System
+![](./img/upload_choose_file.png)
+2. Press the Upload button, which will automatically generate a URL for you where you can check if the file was uploaded correctly
+![](./img/upload_url.png)
+![](./img/upload_test_file.png)
+
+3. To Access static content served by NGINX, go to : <load-balancer-public-ip/static/>
+
+![](./img/nginx_static.png)
+
+
+
+
+
+
