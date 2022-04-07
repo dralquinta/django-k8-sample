@@ -564,13 +564,15 @@ LBAAS_PUBLIC_IP: Get this from the console or from the service
 
 The github actions code can be found [here](.github/workflows). 
 
-The actions were included to provide a way for automatic deployment. They include:
--  A [test](.github/workflows/test.yaml) file which runs any tests included in [manage.py](web/manage.py) to ensure that Django is configured correctly and
+The actions were generated to provide a way for automatic deployment. They include:
+- A [test](.github/workflows/test.yaml) file which runs any tests included in [manage.py](web/manage.py) to ensure that Django is configured correctly and
 - A [build](.github/workflows/build.yaml) file which builds all necessary parts for the deployment onto a linux/arm64 OKE cluster. 
 
 To run the actions correctly you will need to configure the following [Github Actions Secrtes](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions) in your own repository. The link included provides a guide on how to do so. 
 
-The following variables were passed onto the actions as secretes:
+In order to input your `Secrets` navigate to the main page of the repository, click on the `Settings` tab, click `Secrets` and then click on `Add a new secret`.
+
+The following variables Secrets were added onto this repo:
 
 - The variables included in the Django .env file:
 
@@ -599,8 +601,107 @@ The following variables were passed onto the actions as secretes:
     - OCI_CONFIG: Your OCI config file found under ~/.oci/config on your OCI instance. 
     - OCI_KEY_FILE: Your OCI .pem key which found under ~/.oci/key.pem or ~/.oci/API_KEYS/key.pem on your OCI instance
 
+The Secrets should then appear like so:
+
+![](./img/secrets.png)
+
+
 Please note that for KUBECONFIG to work you must change the `server: https://x.x.x.x:6443` included in your original config file to `server: https://127.0.0.1:6443` and then upload the file as a secret. 
 
 In order to connect to the private OKE cluster a bastion session is being created and destroyed in the last step of the deployment. Make sure to change the bastion id `--bastion-id "ocid1.bastion.oc1.uk-london-1.amaaaaaatwfhi7yan2s3sdth7yjcw4hpa3o32uebmrlideeocv5xl2lajknq"` in line 96 of the [build](.github/workflows/build.yaml) file to contain your own bastion id. 
 
 Lastly do make sure to also change the image names in the [build](.github/workflows/build.yaml) file to correspond to your container repository name. 
+
+# Shared File System
+
+Prerequisites:
+- Pre-created Mount Target
+- Pre-created File System for Nginx static content
+- Pre-created File System for Django app media content
+
+You will need:
+- OCID of Mount Target
+- IP Address of Mount Target
+- An export path of your File Systems
+
+![](./img/export_path.png)
+
+First of all, adjust the specific values for your File System inside django-k8-sample/k8s_deployment/Storage
+
+1. Paste your Mount Target OCID to StorageClass.yaml:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oci-fss
+provisioner: oracle.com/oci-fss
+parameters:
+  mntTargetId: MY_MOUNT_TARGET_OCID
+```
+2. Paste your Mount Target IP and export path to PV.yaml:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: pv-fss-app
+spec:
+ storageClassName: oci-fss
+ capacity:
+  storage: 100Gi
+ accessModes:
+  - ReadWriteMany
+ mountOptions:
+  - nosuid
+ nfs:
+  server: MY_MOUNT_TARGET_IP          
+  path: MY_FILE_SYSTEM_EXPORT_PATH         
+  readOnly: false
+```
+
+The default mount paths are:
+- for NGINX, /home/app/microservice/static
+- for Django app, app/media/
+
+Rebuild, retag and push the image to the repository.
+
+Deploy the Persistent Volume storage and its components to the Kubernetes cluster:
+
+`kubectl apply -f ~/django-k8-sample/k8s_deployment/Storage`
+
+You should see:
+
+```shell
+ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment$ k apply -f Storage
+persistentvolume/pv-fss-app created
+persistentvolume/pv-fss-nginx created
+persistentvolumeclaim/pvc-fss-app craeted
+persistentvolumeclaim/pvc-fss-nginx craeted
+storageclass.storage.k8s.io/oci-fss craeted
+```
+
+Secondly Deploy the application to the Kubernetes cluster with django-k8s-web-file-system.yaml:
+
+`kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-file-system.yaml`
+
+It should look like this:
+
+```shell
+ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment/apps$ k apply -f django-k8s-web.yaml 
+deployment.apps/django-k8s-web-deployment created
+service/django-k8s-web-service created
+deployment.apps/nginx-deployment created
+service/nginx-service-lbaas created
+```
+Now, let's test the newly created File System by typing <load-balancer-public-ip/upload> into the browser:
+
+1. Choose a file to upload to the File System
+![](./img/upload_choose_file.png)
+2. Press the Upload button, which will automatically generate a URL for you where you can check if the file was uploaded correctly
+![](./img/upload_url.png)
+![](./img/upload_test_file.png)
+
+3. To Access static content served by NGINX, go to : <load-balancer-public-ip/static/>
+
+![](./img/nginx_static.png)
