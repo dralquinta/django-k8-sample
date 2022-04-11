@@ -576,9 +576,9 @@ The following variables Secrets were added onto this repo:
 
 **The variables included in the Django .env file:**
 
-- **DJANGO_SECRET_KEY**: Your Django Secret Key 
+- **DJANGO_SECRET_KEY**: Your Django Secret Key  (include quotes)
 - **DJANGO_SUPERUSER_EMAIL**: Your Django superuser email 
-- **DJANGO_SUPERUSER_PASSWORD**: Your Django superuser password 
+- **DJANGO_SUPERUSER_PASSWORD**: Your Django superuser password
 - **DJANGO_SUPERUSER_USERNAME**: Your Django superuser username 
 
 - **MYSQL_DB**: The name of the database 
@@ -589,13 +589,17 @@ The following variables Secrets were added onto this repo:
 - **MYSQL_ROOT_PASSWORD**: The database root password 
 - **MYSQL_USER**: Name of the database user 
 
+- **AWS_ACCESS_KEY_ID**: The AWS Access Key ID 
+- **AWS_SECRET_ACCESS_KEY**: The AWS Secret Access Key
+
+For more information on how to configure the aws access keys visit: 
 
 **OCI Specific variables:**
 
 - **ID_RSA**: The key located in ~/.ssh/id_rsa on your OCI instance 
 - **ID_RSA_PUB**: The key located in ~/.ssh/id_rsa.pub on your OCI instance 
 - **KUBECONFIG**: The kube config file located in .kube/config of your instance 
-- **OCIR_LOGIN**: The login to your Oracle Container Registry account. Please include the single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
+- **OCIR_LOGIN**: The login to your Oracle Container Registry account. Please include  single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
 - **OCIR_PASS**: The password to your Oracle Container Registry accounr. Please include the single quotes in the secret description. Eg: '12kli2/a3ete3sd-u'
 - **OCI_CONFIG**: Your OCI config file found under ~/.oci/config on your OCI instance. 
 - **OCI_KEY_FILE**: Your OCI .pem key which found under ~/.oci/key.pem or ~/.oci/API_KEYS/key.pem on your OCI instance
@@ -704,3 +708,31 @@ Now, let's test the newly created File System by typing <load-balancer-public-ip
 3. To Access static content served by NGINX, go to : <load-balancer-public-ip/static/>
 
 ![](./img/nginx_static.png)
+
+# Collect Statics
+
+All static code should be stored under [web/staticfiles](web/staticfiles).
+
+Statics are being uploaded in an S3 bucket inside OCI. This can be done locally by running: 
+```
+python manage.py collectstatics
+```
+The statics are also uploaded on every pull request through github actions. 
+
+Edit [django_k8s/cdn/conf.py](/web/django_k8s/cdn/conf.py) to configure the location in which the static files will be stored. The file should include the following variables:
+```
+
+AWS_ACCESS_KEY_ID=os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY=os.environ.get("AWS_SECRET_ACCESS_KEY")
+
+AWS_STORAGE_BUCKET_NAME= "npieri-bucket"
+AWS_S3_ENDPOINT_URL="https://idhkis4m3p5e.compat.objectstorage.uk-london-1.oraclecloud.com"
+
+AWS_S3_REGION_NAME="uk-london-1"
+
+DEFAULT_FILE_STORAGE="django_k8s.cdn.backends.MediaRootS3BotoStorage"
+STATICFILES_STORAGE="django_k8s.cdn.backends.StaticRootS3BotoStorage"
+
+```
+
+Configure the your API credentials under: `/home/opc/.aws/credentials` and follow how to create the Secret Key and save it in the correct format here: [Set up AWS Credentials](https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcredentials.htm#create-secret-key)
