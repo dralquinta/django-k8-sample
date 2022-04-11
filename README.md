@@ -709,19 +709,19 @@ Now, let's test the newly created File System by typing <load-balancer-public-ip
 
 ![](./img/nginx_static.png)
 
-# Collect Statics
+# Statics
 
 All static code should be stored under [web/staticfiles](web/staticfiles).
 
 Statics are being uploaded in an S3 bucket inside OCI. This can be done locally by running: 
 ```
-python manage.py collectstatics
+python manage.py collectstatic
 ```
-The statics are also uploaded on every pull request through github actions. 
+All static files are also uploaded to the bucket on every pull request through github actions. 
 
-Edit [django_k8s/cdn/conf.py](/web/django_k8s/cdn/conf.py) to configure the location in which the static files will be stored. The file should include the following variables:
+Edit [django_k8s/cdn/conf.py](/web/django_k8s/cdn/conf.py) to configure the location of the S3 bucket in which the static files will be stored. The config file should include the following variables:
+
 ```
-
 AWS_ACCESS_KEY_ID=os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY=os.environ.get("AWS_SECRET_ACCESS_KEY")
 
@@ -732,7 +732,6 @@ AWS_S3_REGION_NAME="uk-london-1"
 
 DEFAULT_FILE_STORAGE="django_k8s.cdn.backends.MediaRootS3BotoStorage"
 STATICFILES_STORAGE="django_k8s.cdn.backends.StaticRootS3BotoStorage"
-
 ```
 
-Configure the your API credentials under: `/home/opc/.aws/credentials` and follow how to create the Secret Key and save it in the correct format here: [Set up AWS Credentials](https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcredentials.htm#create-secret-key)
+Configure your API credentials under: `/home/opc/.aws/credentials` and follow how to create the Secret Key and in the correct format here: [Set up AWS Credentials](https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcredentials.htm#create-secret-key)
