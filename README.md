@@ -722,7 +722,7 @@ Prerequisites:
 
 2. Add DNS **A** record with your LB public IP:
 
-![](./img/dns_record)
+![](./img/dns_record.png)
 
 3. Modify generate_cert.sh to include your website domain name:
 
@@ -765,36 +765,36 @@ In effect your website should be accesable over HTTPS without warning
 ## Auto generated and maintained certificates with cert-manager and Let's encrypt
 
 1. Delete previous deployments
-2. Create new sample app with different yaml file:
+2. Create new sample app with django-k8s-web-auto-ssl.yaml:
 
 ```shell
 kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-auto-ssl.yaml
 ```
 3. Install required services:
 
-- Install helm from [Official Website](https://helm.sh/docs/intro/install/)
-- Deploy ingress-nginx from [Official Website](https://kubernetes.github.io/ingress-nginx/deploy/)
+  - Install helm from [Official Website](https://helm.sh/docs/intro/install/)
+  - Deploy ingress-nginx from [Official Website](https://kubernetes.github.io/ingress-nginx/deploy/)
 
-Check if deployment was successfull by listing all ingress-nginx components
+  Check if deployment was successfull by listing all ingress-nginx components
 
-```shell
-kubectl get all -n ingress-nginx
-```
+  ```shell
+  kubectl get all -n ingress-nginx
+  ```
 
-You should see:
+  You should see:
 
-![](./img/nginx_controller_components.png)
+  ![](./img/nginx_controller_components.png)
 
-- Deploy cert-manager from [Official Website](https://cert-manager.io/docs/installation/)
+  - Deploy cert-manager from [Official Website](https://cert-manager.io/docs/installation/)
 
-Check if deployment was successfull by listing all cert-manager components
+  Check if deployment was successfull by listing all cert-manager components
 
-```shell
-kubectl get all -n cert-manager
-```
-You should see:
+  ```shell
+  kubectl get all -n cert-manager
+  ```
+  You should see:
 
-![](./img/cert_manager_components.png)
+  ![](./img/cert_manager_components.png)
 
 4. Copy your new Load balancer public IP:
 
@@ -805,27 +805,27 @@ You should see:
 
 Add DNS A record with your LB public IP:
 
-![](./img/dns_record)
+![](./img/dns_record.png)
 
 5. Modify following yaml files:
 
-- cert_issuer.yaml
+  - cert_issuer.yaml
 
-Update your email:
+  Update your email:
 
-![](./img/cluster_issuer_email.png)
+  ![](./img/cluster_issuer_email.png)
 
-- certificate.yaml
+  - certificate.yaml
 
-Update your domain name:
+  Update your domain name:
 
-![](./img/certificate_update.png)
+  ![](./img/certificate_update.png)
 
-- ingress.yaml
+  - ingress.yaml
 
-Update your domain name:
+  Update your domain name:
 
-![](./img/ingress_update.png)
+  ![](./img/ingress_update.png)
 
 6. Apply all the 3 yaml files you just modified in the following order:
 
@@ -839,7 +839,7 @@ If everything went well the certificate was generated. To see details run comman
 ```shell
 kubectl describe certificate cert
 ```
-You should see details:
+You should see:
 
 ![](./img/certificate_details.png)
 
