@@ -704,3 +704,147 @@ Now, let's test the newly created File System by typing <load-balancer-public-ip
 3. To Access static content served by NGINX, go to : <load-balancer-public-ip/static/>
 
 ![](./img/nginx_static.png)
+
+
+# SSL with kubernetes
+
+## User managed certificates
+
+Prerequisites:
+ - sample app deployed from previous steps
+ - certificates for your website
+
+1. Copy your Load Balancer public IP:
+
+'kubectl get svc'
+
+![](./img/load_balancer_ip.png)
+
+2. Add DNS **A** record with your LB public IP:
+
+![](./img/dns_record.png)
+
+3. Modify generate_cert.sh to include your website domain name:
+
+```shell
+cd ~/django-k8-sample/k8s_deployment/SSL
+```
+
+![](./img/generate_cert.png)
+
+4. Generate self signed certificate for your website by running generate_cert.sh script:
+
+```shell
+./generate_cert.sh
+```
+You should expect to see:
+
+![](./img/generate_cert_outcome.png)
+
+
+The certificate will be stored in kubernetes secret under the name tls-secret.
+
+Now update Load balancer to enable HTTPS connectivity by applying LB.yaml:
+
+```shell
+kubectl apply -f LB.yaml
+```
+Now you can connect to your website over HTTPS however the certificate will not be recognised by your browser.
+
+In order to apply your own valid certificate, delete secret and upload tls.crt with tls.key file and create new secret:
+
+```shell
+kubectl delete secret tls-secret
+kubectl create secret tls tls-secret --key path_to_your_key/tls.crt --cert path_to_your_cert/tls.key
+```
+
+Load balancer will automatically access and apply the secret
+
+In effect your website should be accesable over HTTPS without warning
+
+## Auto generated and maintained certificates with cert-manager and Let's encrypt
+
+1. Delete previous deployments
+2. Create new sample app with django-k8s-web-auto-ssl.yaml:
+
+```shell
+kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-auto-ssl.yaml
+```
+3. Install required services:
+
+  - Install helm from [Official Website](https://helm.sh/docs/intro/install/)
+  - Deploy ingress-nginx from [Official Website](https://kubernetes.github.io/ingress-nginx/deploy/)
+
+  Check if deployment was successfull by listing all ingress-nginx components
+
+  ```shell
+  kubectl get all -n ingress-nginx
+  ```
+
+  You should see:
+
+  ![](./img/nginx_controller_components.png)
+
+  - Deploy cert-manager from [Official Website](https://cert-manager.io/docs/installation/)
+
+  Check if deployment was successfull by listing all cert-manager components
+
+  ```shell
+  kubectl get all -n cert-manager
+  ```
+  You should see:
+
+  ![](./img/cert_manager_components.png)
+
+4. Copy your new Load balancer public IP:
+
+```shell
+  kubectl get svc
+```
+![](./img/load_balancer_ip.png)
+
+Add DNS A record with your LB public IP:
+
+![](./img/dns_record.png)
+
+5. Modify following yaml files:
+
+  - cert_issuer.yaml
+
+  Update your email:
+
+  ![](./img/cluster_issuer_email.png)
+
+  - certificate.yaml
+
+  Update your domain name:
+
+  ![](./img/certificate_update.png)
+
+  - ingress.yaml
+
+  Update your domain name:
+
+  ![](./img/ingress_update.png)
+
+6. Apply all the 3 yaml files you just modified in the following order:
+
+```shell
+kubectl apply -f cert_issuer.yaml
+kubectl apply -f ingress.yaml
+kubectl apply -f certificate.yaml
+```
+If everything went well the certificate was generated. To see details run command:
+
+```shell
+kubectl describe certificate cert
+```
+You should see:
+
+![](./img/certificate_details.png)
+
+7. Acces your website over HTTPS and enjoy automatic certification updates:
+
+![](./img/https_connection.png)
+
+
