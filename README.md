@@ -564,9 +564,7 @@ LBAAS_PUBLIC_IP: Get this from the console or from the service
 
 The github actions code can be found [here](.github/workflows). 
 
-The actions were generated to provide a way for automatic deployment. They include:
-- A [test](.github/workflows/test.yaml) file which runs any tests included in [manage.py](web/manage.py) to ensure that Django is configured correctly and
-- A [build](.github/workflows/build.yaml) file which builds all necessary parts for the deployment onto a linux/arm64 OKE cluster. 
+The Actions generated include a [build](.github/workflows/build.yaml) file which involes two major jobs. The first job (`django_test`) checks that Django has been configured correctly by running `python manage.py test`. It further carries out a health check of the databse. After the tests have passed and the database has been validated the next job (`build`) takes care of the app's deployment. This job signs into to the docker registry, builds the new docker images containing any changes which have been made during the Pull Request, pushes the images to the registry and rolls out the new deployment. After the deployment has been rolled out it then migrates the database and collects any static files.  
 
 To run the actions correctly you will need to configure the following [Github Actions Secrtes](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions) in your own repository. The link included provides a guide on how to do so. 
 
@@ -576,7 +574,7 @@ The following variables Secrets were added onto this repo:
 
 **The variables included in the Django .env file:**
 
-- **DJANGO_SECRET_KEY**: Your Django Secret Key  (include quotes)
+- **DJANGO_SECRET_KEY**: Your Django Secret Key 
 - **DJANGO_SUPERUSER_EMAIL**: Your Django superuser email 
 - **DJANGO_SUPERUSER_PASSWORD**: Your Django superuser password
 - **DJANGO_SUPERUSER_USERNAME**: Your Django superuser username 
