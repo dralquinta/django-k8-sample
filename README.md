@@ -564,9 +564,7 @@ LBAAS_PUBLIC_IP: Get this from the console or from the service
 
 The github actions code can be found [here](.github/workflows). 
 
-The actions were generated to provide a way for automatic deployment. They include:
-- A [test](.github/workflows/test.yaml) file which runs any tests included in [manage.py](web/manage.py) to ensure that Django is configured correctly and
-- A [build](.github/workflows/build.yaml) file which builds all necessary parts for the deployment onto a linux/arm64 OKE cluster. 
+The Actions generated include a [build](.github/workflows/build.yaml) file which involes two major jobs. The first job (`django_test`) checks that Django has been configured correctly by running `python manage.py test`. It further carries out a health check of the databse. After the tests have passed and the database has been validated the next job (`build`) takes care of the app's deployment. This job signs into to the docker registry, builds the new docker images containing any changes which have been made during the Pull Request, pushes the images to the registry and rolls out the new deployment. After the deployment has been rolled out it then migrates the database and collects any static files.  
 
 To run the actions correctly you will need to configure the following [Github Actions Secrtes](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions) in your own repository. The link included provides a guide on how to do so. 
 
@@ -578,7 +576,7 @@ The following variables Secrets were added onto this repo:
 
 - **DJANGO_SECRET_KEY**: Your Django Secret Key 
 - **DJANGO_SUPERUSER_EMAIL**: Your Django superuser email 
-- **DJANGO_SUPERUSER_PASSWORD**: Your Django superuser password 
+- **DJANGO_SUPERUSER_PASSWORD**: Your Django superuser password
 - **DJANGO_SUPERUSER_USERNAME**: Your Django superuser username 
 
 - **MYSQL_DB**: The name of the database 
@@ -589,13 +587,17 @@ The following variables Secrets were added onto this repo:
 - **MYSQL_ROOT_PASSWORD**: The database root password 
 - **MYSQL_USER**: Name of the database user 
 
+- **AWS_ACCESS_KEY_ID**: The AWS Access Key ID 
+- **AWS_SECRET_ACCESS_KEY**: The AWS Secret Access Key
+
+For more information on how to configure the aws access keys visit: 
 
 **OCI Specific variables:**
 
 - **ID_RSA**: The key located in ~/.ssh/id_rsa on your OCI instance 
 - **ID_RSA_PUB**: The key located in ~/.ssh/id_rsa.pub on your OCI instance 
 - **KUBECONFIG**: The kube config file located in .kube/config of your instance 
-- **OCIR_LOGIN**: The login to your Oracle Container Registry account. Please include the single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
+- **OCIR_LOGIN**: The login to your Oracle Container Registry account. Please include  single quotes in the secret description. Eg: 'idhkixxx/oracleidentitycloudservice/xxx.xxx@oracle.com'
 - **OCIR_PASS**: The password to your Oracle Container Registry accounr. Please include the single quotes in the secret description. Eg: '12kli2/a3ete3sd-u'
 - **OCI_CONFIG**: Your OCI config file found under ~/.oci/config on your OCI instance. 
 - **OCI_KEY_FILE**: Your OCI .pem key which found under ~/.oci/key.pem or ~/.oci/API_KEYS/key.pem on your OCI instance
@@ -705,6 +707,32 @@ Now, let's test the newly created File System by typing <load-balancer-public-ip
 
 ![](./img/nginx_static.png)
 
+# Statics
+
+All static code should be stored under [web/staticfiles](web/staticfiles).
+
+Statics are being uploaded in an S3 bucket inside OCI. This can be done locally by running: 
+```
+python manage.py collectstatic
+```
+All static files are also uploaded to the bucket on every pull request through github actions. 
+
+Edit [django_k8s/cdn/conf.py](/web/django_k8s/cdn/conf.py) to configure the location of the S3 bucket in which the static files will be stored. The config file should include the following variables:
+
+```
+AWS_ACCESS_KEY_ID=os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY=os.environ.get("AWS_SECRET_ACCESS_KEY")
+
+AWS_STORAGE_BUCKET_NAME= "npieri-bucket"
+AWS_S3_ENDPOINT_URL="https://idhkis4m3p5e.compat.objectstorage.uk-london-1.oraclecloud.com"
+
+AWS_S3_REGION_NAME="uk-london-1"
+
+DEFAULT_FILE_STORAGE="django_k8s.cdn.backends.MediaRootS3BotoStorage"
+STATICFILES_STORAGE="django_k8s.cdn.backends.StaticRootS3BotoStorage"
+```
+
+Configure your API credentials under: `/home/opc/.aws/credentials` and follow how to create the Secret Key and in the correct format here: [Set up AWS Credentials](https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcredentials.htm#create-secret-key)
 
 # SSL with kubernetes
 
@@ -846,5 +874,3 @@ You should see:
 7. Acces your website over HTTPS and enjoy automatic certification updates:
 
 ![](./img/https_connection.png)
-
-

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -159,3 +160,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default url for media files
 MEDIA_URL = '/media/'
+
+STATIC_ROOT = BASE_DIR / "staticfiles-cdn"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "staticfiles"
+]
+
+from .cdn.conf import * # noqa
