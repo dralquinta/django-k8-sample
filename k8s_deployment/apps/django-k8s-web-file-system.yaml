@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: django-k8s-web
-        image: lhr.ocir.io/idhkis4m3p5e/k8s_test:latest
+        image: lhr.ocir.io/idhkis4m3p5e/django-app-k8s:latest
         imagePullPolicy: Always
         envFrom:
           - secretRef:
@@ -78,7 +78,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: lhr.ocir.io/idhkis4m3p5e/k8s_t:latest
+        image: lhr.ocir.io/idhkis4m3p5e/django-nginx-k8s:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
