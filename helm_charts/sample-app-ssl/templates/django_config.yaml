@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+data:
+  .env: |
+    DEBUG={{.Values.debug}}
+    DJANGO_SUPERUSER_USERNAME= {{.Values.djangoSuperuserUsername}}
+    DJANGO_SUPERUSER_PASSWORD= {{.Values.djangoSuperuserPassword}}
+    DJANGO_SUPERUSER_EMAIL= {{.Values.djangoSuperuserEmail}}
+    DJANGO_SECRET_KEY= {{.Values.djangoSecretKey}}
+
+    MYSQL_READY= {{.Values.mysqlReady}}
+    MYSQL_DB= {{.Values.mysqlDb}}
+    MYSQL_USER= {{.Values.mysqlUser}}
+    MYSQL_PASSWORD= {{.Values.mysqlPassword}}
+    MYSQL_HOST= {{.Values.mysqlHost}}
+    MYSQL_PORT= {{.Values.mysqlPort}}
+    MYSQL_ROOT_PASSWORD= {{.Values.mysqlRootPassword}}
+
+    AWS_ACCESS_KEY_ID= {{.Values.awsAccessKeyId}}
+    AWS_SECRET_ACCESS_KEY= {{.Values.awsSecretAccessKey}}
+
+    MEDIA_ROOT= {{.Values.mountPathWeb | quote }}
+    MEDIA_URL= {{.Values.mediaUrl | quote}}

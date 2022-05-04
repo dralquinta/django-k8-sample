@@ -1,0 +1,31 @@
+# replicas are the number of copies of nginx and django web servers
+replicas: 1
+
+# webImage and nignxImage are the source images used for deployment
+webImage: lhr.ocir.io/idhkis4m3p5e/django-app-k8s:helm 
+nginxImage: lhr.ocir.io/idhkis4m3p5e/django-nginx-k8s:helm
+
+# email is the email address where there will be send a notification when the certificates will be reissued
+email: grzegorz.wysopal@oracle.com
+
+# dnsName is your dns name assigned to your load balancer public IP
+dnsName: test.ocitestdomain.co.uk
+
+# Configmap values
+
+debug: 1
+djangoSuperuserUsername: dalquint
+djangoSuperuserPassword: d3nny4lqu1nTa
+djangoSuperuserEmail: dralquinta@gmail.com
+djangoSecretKey: "hn&&mxzsw(04h4v-k675j(p(cdt@s)%)!9twc5s%a&8d1(tm4z"
+mysqlReady: 1
+mysqlDb: django
+mysqlUser: root
+mysqlPassword: W3lc0m31.
+mysqlHost: 10.0.2.196
+mysqlPort: 3306
+mysqlRootPassword: W3lc0m31.
+awsAccessKeyId: e5fadc12e62013c1f5f3fa193d56b5f13549083c
+awsSecretAccessKey: bdpp60Tmrpelpgvq8+dV21C4YGEH70qlRqfK7YxwyZ3JawU=
+# mediaRoot: it is the same as mountPathWeb, no need to adjust
+mediaUrl: /media/

@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-k8s-web-deployment
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  replicas: {{.Values.replicas}}
+  selector:
+    matchLabels:
+      app: django-k8s-web-deployment
+  template:
+    metadata:
+      labels:
+        app: django-k8s-web-deployment
+    spec:
+      containers:
+      - name: django-k8s-web
+        image: {{.Values.webImage}}
+        imagePullPolicy: Always
+        envFrom:
+          - secretRef:
+              name: django-k8s-web-prod-env
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: nfs-mount
+          mountPath: {{.Values.mountPathWeb | quote}}
+        - name: django-configmap
+          mountPath: /app/.env
+          subPath: .env
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
+        env:
+          - name: PORT
+            value: "8000"
+      volumes:
+      - name: nfs-mount
+        persistentVolumeClaim:
+          claimName: pvc-fss-app
+          readOnly: false
+      - name: django-configmap
+        configMap:
+          name: django-config
+      imagePullSecrets:
+        - name: ocirsecret
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-k8s-web-service
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
+
+  selector:
+    app: django-k8s-web-deployment
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  replicas: {{.Values.replicas}} 
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx
+        image: {{.Values.nginxImage}}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
+        volumeMounts:
+          - name: nginx-configmap
+            mountPath: /etc/nginx/conf.d
+          - name: nfs-mount
+            mountPath: {{.Values.mountPathNginx | quote}}
+      imagePullSecrets:
+        - name: ocirsecret
+      volumes:
+        - name: nginx-configmap
+          configMap:
+            name: nginx-config
+        - name: nfs-mount
+          persistentVolumeClaim:
+            claimName: pvc-fss-nginx
+            readOnly: false
+            
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service-lbaas
+  labels:
+    app: nginx-deployment
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
+
+  selector:
+    app: nginx-deployment
