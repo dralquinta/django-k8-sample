@@ -5,10 +5,10 @@ This is a sample django project deployable to Oracle Kubernetes Engine
 
 Configuring OCI CLI:
 ```shell
-$ sudo runuser -l ubuntu -c 'mkdir -p /home/ubuntu/oci_cli'
-$ sudo runuser -l ubuntu -c 'wget https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh'
-$ sudo runuser -l ubuntu -c 'chmod +x install.sh'
-$ sudo runuser -l ubuntu -c '/home/ubuntu/install.sh --install-dir /home/ubuntu/oci_cli/lib/oracle-cli --exec-dir /home/ubuntu/oci_cli/bin --accept-all-defaults'
+sudo runuser -l ubuntu -c 'mkdir -p /home/ubuntu/oci_cli'
+sudo runuser -l ubuntu -c 'wget https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh'
+sudo runuser -l ubuntu -c 'chmod +x install.sh'
+sudo runuser -l ubuntu -c '/home/ubuntu/install.sh --install-dir /home/ubuntu/oci_cli/lib/oracle-cli --exec-dir /home/ubuntu/oci_cli/bin --accept-all-defaults'
 ```
 
 Finish the OCI CLI configuration by generating an OCI config file in ~/.oci/config. Your config file should look something like this:
@@ -24,54 +24,62 @@ key_file=/foo/bar/path/api_private_key.pem
 Finally run: 
 
 ```shell
-$ sudo runuser -l ubuntu -c 'oci setup repair-file-permissions --file /home/ubuntu/.oci/config'
+sudo runuser -l ubuntu -c 'oci setup repair-file-permissions --file /home/ubuntu/.oci/config'
 ```
 
 Installing Docker:
 ```shell
-$ sudo apt-get update
+sudo apt-get update
 
-$ sudo apt-get install \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
+sudo apt-get install \
+  ca-certificates \
+  curl \
+  gnupg \
+  lsb-release
 
-$ sudo apt-get install docker-ce docker-ce-cli containerd.io
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
-$ sudo apt install docker.io -y
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+sudo apt install docker.io -y
 ```
 
 Docker post-installation:
 ```
-$  sudo usermod -a -G docker $USER
-$  sudo systemctl enable docker.service
-$  sudo systemctl start docker.service
-$  sudo chmod 666 /var/run/docker.sock
+sudo usermod -a -G docker $USER
+sudo systemctl enable docker.service
+sudo systemctl start docker.service
+sudo chmod 666 /var/run/docker.sock
 ```
 
 Installing pip3:
 ```shell
-$ sudo apt install python3-pip
+sudo apt install python3-pip
 ```
 
 Installing kubectl:
 ```shell
-$ sudo apt-get update
-$ sudo apt-get install -y apt-transport-https ca-certificates curl
-$ sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-$ echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-$ sudo apt-get update
-$ sudo apt-get install -y kubectl
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl
+sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubectl
 ```
 
 Installking k9s (optional):
 ```shell
-$ mkdir -p /home/ubuntu/k9s_installer
-$ wget https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_arm64.tar.gz -P /home/ubuntu/k9s_installer
-$ tar -xvf /home/ubuntu/k9s_installer/k9* -C /home/ubuntu/k9s_installer
-$ sudo cp /home/ubuntu/k9s_installer/k9s /usr/bin
-$ rm -rf /home/ubuntu/k9s_installer
+mkdir -p /home/ubuntu/k9s_installer
+wget https://github.com/derailed/k9s/releases/download/v0.25.18/k9s_Linux_arm64.tar.gz -P /home/ubuntu/k9s_installer
+tar -xvf /home/ubuntu/k9s_installer/k9* -C /home/ubuntu/k9s_installer
+sudo cp /home/ubuntu/k9s_installer/k9s /usr/bin
+rm -rf /home/ubuntu/k9s_installer
 ```
 
 Commands ran: 
