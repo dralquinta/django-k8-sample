@@ -615,21 +615,39 @@ Lastly do make sure to also change the image names in the [build](.github/workfl
 
 # Shared File System
 
-Prerequisites:
-- Pre-created Mount Target
-- Pre-created File System for Nginx static content
-- Pre-created File System for Django app media content
+**Oracle Cloud Infrastructure File Storage** service provides a durable, scalable, secure, enterprise-grade network file system.  Large Compute clusters of thousands of instances can use the File Storage service for high-performance shared storage. Storage provisioning is fully managed and automatic as your use scales from a single byte to exabytes without upfront provisioning.
+The File Storage service supports the Network File System version 3.0 (NFSv3) protocol.
 
-You will need:
-- OCID of Mount Target
-- IP Address of Mount Target
-- An export path of your File Systems
+### <ins>The following guide includes
+- deployment of upload application for testing purposes
+- provisioning of File System for Django App Media content
+- provisioning of File System for Nginx Static content
+
+
+### <ins>Prerequisites
+- Pre-created Mount Target
+- Pre-created File System for Nginx Static content
+- Pre-created File System for Django App Media content
+
+### <ins>Gathering data
+
+Login to your OCI console open hamburger menu and go to: 
+**Storage** >> **File Storage** >> **Mount Targets** >> *(Select)* **Mount Target Details**
+
+Collect the following data:
+
+- **OCID** of Mount Target
+- **IP Address** of Mount Target
+- **An Export Path** of your File Systems
 
 ![](./img/export_path.png)
 
-First of all, adjust the specific values for your File System inside django-k8-sample/k8s_deployment/Storage
+### <ins>Updating data
 
-1. Paste your Mount Target OCID to StorageClass.yaml:
+First of all, adjust the specific values for your File System inside
+*`django-k8-sample/k8s_deployment/Storage/`*
+
+1. Paste your **Mount Target OCID** to [StorageClass.yaml](/k8s_deployment/Storage/StorageClass.yaml):
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -638,9 +656,9 @@ metadata:
   name: oci-fss
 provisioner: oracle.com/oci-fss
 parameters:
-  mntTargetId: MY_MOUNT_TARGET_OCID
+  mntTargetId: MY_MOUNT_TARGET_OCID # Here Paste your Mount target OCID
 ```
-2. Paste your Mount Target IP and export path to PV.yaml:
+2. Paste your **Mount Target IP** and **Export Paths** to [PV.yaml](/k8s_deployment/Storage/PV.yaml):
 
 ```yaml
 apiVersion: v1
@@ -656,54 +674,291 @@ spec:
  mountOptions:
   - nosuid
  nfs:
-  server: MY_MOUNT_TARGET_IP          
-  path: MY_FILE_SYSTEM_EXPORT_PATH         
+  server: MY_MOUNT_TARGET_IP # Here Paste your Mount target IP  
+  path: "/MY_FILE_SYSTEM_EXPORT_PATH" # Here Paste your Export Path for Django App file system     
+  readOnly: false
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: pv-fss-nginx
+spec:
+ storageClassName: oci-fss
+ capacity:
+  storage: 100Gi
+ accessModes:
+  - ReadWriteMany
+ mountOptions:
+  - nosuid
+ nfs:
+  server: MY_MOUNT_TARGET_IP # Here Paste your Mount target IP               
+  path: "/MY_FILE_SYSTEM_EXPORT_PATH" # Here Paste your Export Path for Nginx file system         
   readOnly: false
 ```
+### <ins> Changing Mount Paths
 
-The default mount paths are:
-- for NGINX, /home/app/microservice/static
-- for Django app, app/media/
+The **default** file system mount paths are:
+- for NGINX server:  ***/home/app/microservice/static/***
+- for Django App:  ***app/media/***
 
-Rebuild, retag and push the image to the repository.
+Note: if you don't wish to change default mount paths, please skip to the [next part.](#insdeployment-with-sample-app)
 
-Deploy the Persistent Volume storage and its components to the Kubernetes cluster:
+### Changing Mount Path for Nginx static content folder
+1.  Open [django-k8s-web-file-system.yaml](/k8s_deployment/apps/django-k8s-web-file-system.yaml) located in
+*`django-k8-sample/k8s_deployment/apps/`*
 
-`kubectl apply -f ~/django-k8-sample/k8s_deployment/Storage`
+2. Update your **Mount Path** in the filed shown below:
 
-You should see:
+    ```yaml
+    ...
 
-```shell
-ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment$ k apply -f Storage
-persistentvolume/pv-fss-app created
-persistentvolume/pv-fss-nginx created
-persistentvolumeclaim/pvc-fss-app craeted
-persistentvolumeclaim/pvc-fss-nginx craeted
-storageclass.storage.k8s.io/oci-fss craeted
+
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: nginx-deployment
+    spec:
+      selector:
+        matchLabels:
+          app: nginx-deployment
+      replicas: 3 
+      template:
+        metadata:
+          labels:
+            app: nginx-deployment
+        spec:
+          containers:
+          - name: nginx
+            image: grzegorzwysopal/django-app-k8s:latest
+            imagePullPolicy: Always
+            ports:
+            - containerPort: 80
+            volumeMounts:
+            - name: nfs-mount
+              mountPath: "YOUR_NEW_MOUNT_PATH" # Here paste your desired mount path for Nginx server static content
+            resources:
+              limits:
+                cpu: 50m
+              requests:
+                cpu: 20m
+          volumes:
+          - name: nfs-mount
+            persistentVolumeClaim:
+              claimName: pvc-fss-nginx
+              readOnly: false
+          imagePullSecrets:
+            - name: ocirsecret
+
+    ...
+
+
+    ```
+3. Update [nginx.conf](/web/nginx/nginx.conf) located in *`django-k8-sample/web/nginx/`*
+
+    ```sh
+    upstream django-k8s-web-service {
+        server django-k8s-web-service:8000;
+    }
+
+    server {
+
+        listen 80;
+
+        location / {
+            proxy_pass http://django-k8s-web-service;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host $host;
+            proxy_redirect off;
+        }
+        location /static/ {
+            alias /YOUR_NEW_MOUNT_PATH; # Here paste your updated mount path
+        }
+
+    }
+    ```
+
+4. Make sure that the folder you specified exists ;otherwise, file system mount will not be possible. If you would like to create a new folder for Nginx static files you can do that by giving a new path to your desired location inside [docker-compose.yaml](/docker-compose.yaml) located in the main folder.  
+
+    ```yaml
+    version: "3.3"
+    services: 
+      nginx:
+        build: 
+          context: ./web/nginx 
+          dockerfile: Dockerfile
+        image: django-nginx-k8s:latest
+        ports:
+          - 1300:80
+        volumes:
+          - static_volume:/YOUR_NEW_FOLDER_PATH # Pass your new path and folder name here
+        depends_on:
+          - web
+        restart: "on-failure"
+      web:
+        depends_on: 
+          - mysql
+        build: 
+          context: ./web
+          dockerfile: Dockerfile
+        image: django-app-k8s:latest
+        environment:
+          - PORT=8000
+        env_file:
+          - web/.env
+        ports:
+          - "8000:8000"
+        command: sh -c "chmod +x /app/migrate.sh && sh /app/migrate.sh && /app/entrypoint.sh"
+      mysql:
+        restart: always
+        image: mysql:oracle
+        volumes:
+          - ./public:/public
+        env_file:
+          - web/.env
+
+    volumes:
+      static_volume:
+    ```
+5. Rebuild, retag and push the image to your own repository.
+
+    **Note:** Don't forget to update [django-k8s-web-file-system.yaml](/k8s_deployment/apps/django-k8s-web-file-system.yaml) located in
+*`django-k8-sample/k8s_deployment/apps/`* with your repository location. 
+
+
+### Changing Mount Path for Django App Media folder
+
+1. Open [django-k8s-web-file-system.yaml](/k8s_deployment/apps/django-k8s-web-file-system.yaml) located in
+*`django-k8-sample/k8s_deployment/apps/`*
+
+2. Update your **Mount Path** in the fields shown below:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-k8s-web-deployment
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-k8s-web-deployment
+  template:
+    metadata:
+      labels:
+        app: django-k8s-web-deployment
+    spec:
+      containers:
+      - name: django-k8s-web
+        image: grzegorzwysopal/django-app-k8s:latest
+        imagePullPolicy: Always
+        envFrom:
+          - secretRef:
+              name: django-k8s-web-prod-env
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: nfs-mount
+          mountPath: "YOUR_NEW_MOUNT_PATH" # Here paste your desired mount path for Django app media content
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
+        env:
+          - name: PORT
+            value: "8000"
+      volumes:
+      - name: nfs-mount
+        persistentVolumeClaim:
+          claimName: pvc-fss-app
+          readOnly: false
+      imagePullSecrets:
+        - name: ocirsecret
+
+...
+
+
+```
+3. Update [settings.py](/web/django_k8s/settings.py) located in *`django-k8-sample/web/django_k8s/`*
+
+```python
+...
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Default root folder for media files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Here update this entry to your new media root folder 
+
+# Default url for media files
+MEDIA_URL = '/media/'           
+
+STATIC_ROOT = BASE_DIR / "staticfiles-cdn"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "staticfiles"
+]
+
+from .cdn.conf import * # noqa
 ```
 
-Secondly Deploy the application to the Kubernetes cluster with django-k8s-web-file-system.yaml:
+5. Rebuild, retag and push the image to your own repository.
 
-`kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-file-system.yaml`
+    **Note:** Don't forget to update [django-k8s-web-file-system.yaml](/k8s_deployment/apps/django-k8s-web-file-system.yaml) located in
+    *`django-k8-sample/k8s_deployment/apps/`* with your repository location. 
 
-It should look like this:
+### <ins>Deployment of  sample app upload 
 
-```shell
-ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment/apps$ k apply -f django-k8s-web.yaml 
-deployment.apps/django-k8s-web-deployment created
-service/django-k8s-web-service created
-deployment.apps/nginx-deployment created
-service/nginx-service-lbaas created
-```
-Now, let's test the newly created File System by typing <load-balancer-public-ip/upload> into the browser:
+1. Deploy the Persistent Volume storage and its components to the Kubernetes cluster:
+    ```bash
+    cd k8s_deployment
+    kubectl apply -f Storage
+    ```
 
-1. Choose a file to upload to the File System
+    You should see:
+
+    ```shell
+    ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment$ k apply -f Storage
+    persistentvolume/pv-fss-app created
+    persistentvolume/pv-fss-nginx created
+    persistentvolumeclaim/pvc-fss-app craeted
+    persistentvolumeclaim/pvc-fss-nginx craeted
+    storageclass.storage.k8s.io/oci-fss craeted
+    ```
+
+2. Deploy the Sample App to the Kubernetes cluster with [django-k8s-web-file-system.yaml](/k8s_deployment/apps/django-k8s-web-file-system.yaml):
+    ```bash
+    cd k8s_deployment/apps
+    kubectl apply -f django-k8s-web-file-system.yaml
+    ```
+    You should see:
+
+    ```shell
+    ubuntu@ubuntuarm:~/k8s_django/django-k8-sample/k8s_deployment/apps$ k apply -f django-k8s-web.yaml 
+    deployment.apps/django-k8s-web-deployment created
+    service/django-k8s-web-service created
+    deployment.apps/nginx-deployment created
+    service/nginx-service-lbaas created
+    ```
+### <ins>Testing 
+**Note:** Below example uses default mount paths, and **DEBUG mode is on.**
+      
+
+
+Now, let's test the newly created File System by typing ***<load-balancer-public-ip/upload>*** into the browser:
+
+1. To access the media content of the Django App choose a file to upload to the File System:
 ![](./img/upload_choose_file.png)
 2. Press the Upload button, which will automatically generate a URL for you where you can check if the file was uploaded correctly
 ![](./img/upload_url.png)
 ![](./img/upload_test_file.png)
 
-3. To Access static content served by NGINX, go to : <load-balancer-public-ip/static/>
+3. To Access static content served by Nginx, go to : ***<load-balancer-public-ip/static/>***
 
 ![](./img/nginx_static.png)
 
@@ -736,141 +991,157 @@ Configure your API credentials under: `/home/opc/.aws/credentials` and follow ho
 
 # SSL with kubernetes
 
-## User managed certificates
+## 1. User managed certificates
 
-Prerequisites:
- - sample app deployed from previous steps
- - certificates for your website
+Oracle supports 3 different levels of SSL termination:
 
+- SSL termination at the Load Balancer
+- SSL termination between the Load Balancer and Backend
+- SSL termination Point-to-Point
+
+In the example below **,the SSL termination occurs at the Load Balancer**. Please visit [Oracle official documentation](https://docs.oracle.com/en-us/iaas/Content/Balance/Tasks/managingcertificates.htm#SSLCertificateManagement) to discover more about implementing other SSL terminations.
+
+### <ins>Simplified architecture
+
+  ![](./img/ssl_lb.png)
+
+### <ins>Prerequisites:
+ - sample app deployed from the chapter:    [Generate django deployment.](#generate-django-deployment)
+ - SSL certificates for your website
+
+### <ins>Implementation:
 1. Copy your Load Balancer public IP:
 
-'kubectl get svc'
+    `kubectl get svc`
 
-![](./img/load_balancer_ip.png)
+    ![](./img/load_balancer_ip.png)
 
-2. Add DNS **A** record with your LB public IP:
+2. Login to your DNS provider and add **DNS A record** with your LB public IP:
 
-![](./img/dns_record.png)
+    ![](./img/dns_record.png)
 
-3. Modify generate_cert.sh to include your website domain name:
+3. Modify [generate_cert.sh](k8s_deployment/SSL/generate_cert.sh) located in *`/django-k8-sample/k8s_deployment/SSL`* to include your website domain name 
 
-```shell
-cd ~/django-k8-sample/k8s_deployment/SSL
-```
+    ![](./img/generate_cert.png)
 
-![](./img/generate_cert.png)
+4. Generate self signed certificate for your website by running [generate_cert.sh](/k8s_deployment/SSL/generate_cert.sh) script:
 
-4. Generate self signed certificate for your website by running generate_cert.sh script:
+    ```shell
+    cd /k8s_deployment/SSL
+    ./generate_cert.sh
+    ```
+    You should expect to see:
 
-```shell
-./generate_cert.sh
-```
-You should expect to see:
-
-![](./img/generate_cert_outcome.png)
+    ![](./img/generate_cert_outcome.png)
 
 
-The certificate will be stored in kubernetes secret under the name tls-secret.
+    The certificate will be stored in kubernetes secret under the name tls-secret.
 
-Now update Load balancer to enable HTTPS connectivity by applying LB.yaml:
+5. Update Load Balancer to enable HTTPS connectivity by applying [LB.yaml](/k8s_deployment/SSL/LB.yaml) located in *`/django-k8-sample/k8s_deployment/SSL`*:
 
-```shell
-kubectl apply -f LB.yaml
-```
-Now you can connect to your website over HTTPS however the certificate will not be recognised by your browser.
+    ```shell
+    kubectl apply -f ~/django-k8-sample/k8s_deployment/SSL/LB.yaml
+    ```
+    Now you can connect to your website over HTTPS; however, your browser **will not** recognise the certificate.
 
-In order to apply your own valid certificate, delete secret and upload tls.crt with tls.key file and create new secret:
+6. In order to apply your valid certificate, delete the previously created secret and upload your certificate files: **tls.crt** with **tls.key** file and create a new secret as shown below:
 
-```shell
-kubectl delete secret tls-secret
-kubectl create secret tls tls-secret --key path_to_your_key/tls.crt --cert path_to_your_cert/tls.key
-```
+    ```shell
+    kubectl delete secret tls-secret
+    kubectl create secret tls tls-secret --key path_to_your_cert/tls.crt --cert path_to_your_key/tls.key
+    ```
 
-Load balancer will automatically access and apply the secret
+    The Load Balancer will automatically access and apply the secret. In effect your website should be accessible over HTTPS without any warning
 
-In effect your website should be accesable over HTTPS without warning
+## 2. Auto-generated and maintained certificates with cert-manager and Let's encrypt
 
-## Auto generated and maintained certificates with cert-manager and Let's encrypt
+Please note that this sample implementation terminates SSL at Nginx Ingress controller. Read more about security of this solution at [Official Nginx website](https://www.nginx.com/products/nginx-ingress-controller/).
+
+### <ins>Simplified architecture
+
+  ![](./img/ssl_nginx.png)
+
+### <ins>Deployment
 
 1. Delete previous deployments
-2. Create new sample app with django-k8s-web-auto-ssl.yaml:
+2. Create new sample app with [django-k8s-web-auto-ssl.yaml](https://github.com/dralquinta/django-k8-sample/blob/main/k8s_deployment/apps/django-k8s-web-auto-ssl.yaml) located in *`/django-k8-sample/k8s_deployment/apps`* :
 
-```shell
-kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-auto-ssl.yaml
-```
-3. Install required services:
+    ```shell
+    kubectl apply -f ~/django-k8-sample/k8s_deployment/apps/django-k8s-web-auto-ssl.yaml
+    ```
+3. Install essential services:
 
-  - Install helm from [Official Website](https://helm.sh/docs/intro/install/)
-  - Deploy ingress-nginx from [Official Website](https://kubernetes.github.io/ingress-nginx/deploy/)
+    - Install helm from [Official Website](https://helm.sh/docs/intro/install/)
+    - Deploy ingress-nginx from [Official Website](https://kubernetes.github.io/ingress-nginx/deploy/)
 
-  Check if deployment was successfull by listing all ingress-nginx components
+      Check if the deployment was successful by listing all ingress-nginx components
 
-  ```shell
-  kubectl get all -n ingress-nginx
-  ```
+      ```shell
+      kubectl get all -n ingress-nginx
+      ```
 
-  You should see:
+      You should see:
 
-  ![](./img/nginx_controller_components.png)
+      ![](./img/nginx_controller_components.png)
 
-  - Deploy cert-manager from [Official Website](https://cert-manager.io/docs/installation/)
+    - Deploy cert-manager from [Official Website](https://cert-manager.io/docs/installation/)
 
-  Check if deployment was successfull by listing all cert-manager components
+      Check if the deployment was successful by listing all cert-manager components
 
-  ```shell
-  kubectl get all -n cert-manager
-  ```
-  You should see:
+      ```shell
+      kubectl get all -n cert-manager
+      ```
+      You should see:
 
-  ![](./img/cert_manager_components.png)
+      ![](./img/cert_manager_components.png)
 
-4. Copy your new Load balancer public IP:
+4. Copy your Load balancer public IP and add **DNS A record**:
 
-```shell
-  kubectl get svc
-```
-![](./img/load_balancer_ip.png)
+    ```shell
+      kubectl get svc
+    ```
+    ![](./img/load_balancer_ip.png)
 
-Add DNS A record with your LB public IP:
+    
 
-![](./img/dns_record.png)
+    ![](./img/dns_record.png)
 
-5. Modify following yaml files:
+5. Modify following yaml files located in *`/django-k8-sample/k8s_deployment/SSL`*:
 
-  - cert_issuer.yaml
+    - [cert_issuer.yaml](/k8s_deployment/SSL/cert_issuer.yaml)
 
-  Update your email:
+      Update your email:
 
-  ![](./img/cluster_issuer_email.png)
+      ![](./img/cluster_issuer_email.png)
 
-  - certificate.yaml
+    - [certificate.yaml](/k8s_deployment/SSL/certificate.yaml)
 
-  Update your domain name:
+      Update your domain name:
 
-  ![](./img/certificate_update.png)
+      ![](./img/certificate_update.png)
 
-  - ingress.yaml
+    - [ingress.yaml](/k8s_deployment/SSL/ingress.yaml)
 
-  Update your domain name:
+      Update your domain name:
 
-  ![](./img/ingress_update.png)
+      ![](./img/ingress_update.png)
 
 6. Apply all the 3 yaml files you just modified in the following order:
 
-```shell
-kubectl apply -f cert_issuer.yaml
-kubectl apply -f ingress.yaml
-kubectl apply -f certificate.yaml
-```
-If everything went well the certificate was generated. To see details run command:
+    ```shell
+    kubectl apply -f cert_issuer.yaml
+    kubectl apply -f ingress.yaml
+    kubectl apply -f certificate.yaml
+    ```
+    If everything went well the certificate was generated. To see details run the command:
 
-```shell
-kubectl describe certificate cert
-```
-You should see:
+    ```shell
+    kubectl describe certificate cert
+    ```
+    You should see:
 
-![](./img/certificate_details.png)
+    ![](./img/certificate_details.png)
 
-7. Acces your website over HTTPS and enjoy automatic certification updates:
+7. Access your website over HTTPS and enjoy automatic certification updates:
 
-![](./img/https_connection.png)
+    ![](./img/https_connection.png)
