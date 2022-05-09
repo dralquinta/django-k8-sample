@@ -1,0 +1,47 @@
+# replicas are the number of copies of nginx and django web servers
+replicas: 2
+
+# webImage and nignxImage are the source images used for deployment
+webImage: lhr.ocir.io/idhkis4m3p5e/django-app-k8s:helm
+nginxImage: lhr.ocir.io/idhkis4m3p5e/django-nginx-k8s:helm
+
+# mountTargetOcid is the OCID of your mount target
+mountTargetId: ocid1.mounttarget.oc1.uk_london_1.aaaaacvippx2taaqnruhellqojxwiotvnmwwy33omrxw4ljrfvqwiljr
+
+# mountTargetIp is the private IP of your mount target
+mountTargetIp: 10.0.10.34
+
+# exportPathNginx is the export path used by your cloud File System created for Nginx
+exportPathNginx: /FileSystemNGINX
+
+# exportPathWeb is the export path used by your cloud File System created for Django web application
+exportPathWeb: /FileSystemApp
+
+# pvcStorageSize is the size of storage which will be applied to both Nginx and Django web application dedicated File systems
+pvcStorageSize: 100Gi
+
+# mountPathNginx is the location where your cloud File System will be connected inside Nginx server
+mountPathNginx: /home/app/microservice/static
+
+# mountPathNginx is the location where your cloud File System will be connected inside Django web application
+mountPathWeb: /app/media
+
+# .env is the file which contains enviromental variables used by Django web app
+# you can adjust below values used by Django web app
+
+debug: 1
+djangoSuperuserUsername: dalquint
+djangoSuperuserPassword: d3nny4lqu1nTa
+djangoSuperuserEmail: dralquinta@gmail.com
+djangoSecretKey: "hn&&mxzsw(04h4v-k675j(p(cdt@s)%)!9twc5s%a&8d1(tm4z"
+mysqlReady: 1
+mysqlDb: django
+mysqlUser: root
+mysqlPassword: W3lc0m31.
+mysqlHost: 10.0.2.196
+mysqlPort: 3306
+mysqlRootPassword: W3lc0m31.
+awsAccessKeyId: e5fadc12e62013c1f5f3fa193d56b5f13549083c
+awsSecretAccessKey: bdpp60Tmrpelpgvq8+dV21C4YGEH70qlRqfK7YxwyZ3JawU=
+# mediaRoot: it is the same as mountPathWeb, no need to adjust
+mediaUrl: /media/

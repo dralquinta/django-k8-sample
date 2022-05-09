@@ -1,0 +1,6 @@
+configmap:
+  name: testing-config-map
+
+ingress-nginx:
+  labels:
+    test: test

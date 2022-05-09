@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-k8s-web-deployment
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  replicas: {{.Values.replicas}}
+  selector:
+    matchLabels:
+      app: django-k8s-web-deployment
+  template:
+    metadata:
+      labels:
+        app: django-k8s-web-deployment
+    spec:
+      containers:
+      - name: django-k8s-web
+        image: {{.Values.webImage}}
+        volumeMounts:
+        - name: ca-pemstore
+          mountPath: /etc/ssl/certs/ca_bundle.crt
+          subPath: ca_bundle.crt
+          readOnly: false
+        - name: django-configmap
+          mountPath: /app/.env
+          subPath: .env
+        imagePullPolicy: Always
+        envFrom:
+          - secretRef:
+              name: django-k8s-web-prod-env
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
+        env:
+          - name: PORT
+            value: "8000"
+      volumes:
+      - name: ca-pemstore
+        configMap:
+          name: ca-pemstore
+      - name: django-configmap
+        configMap:
+          name: django-config
+      imagePullSecrets:
+        - name: ocirsecret
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-k8s-web-service
+  labels:
+    app: django-k8s-web-deployment
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8000
+    targetPort: 8000
+
+  selector:
+    app: django-k8s-web-deployment
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  replicas: {{.Values.replicas}} 
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - name: nginx
+        image: {{.Values.nginxImage}}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 50m
+          requests:
+            cpu: 20m
+      imagePullSecrets:
+        - name: ocirsecret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: default
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
+
+  selector:
+    app: nginx-deployment

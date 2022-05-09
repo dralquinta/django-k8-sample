@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: default
+  name: simple-ingress
+spec:
+  tls:
+    - hosts:
+      - {{.Values.dnsName}}
+      secretName: tls-secret-key
+  rules:
+  - host: {{.Values.dnsName}}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: 
+            name: nginx-service
+            port: 
+              number: 80
+  ingressClassName: nginx

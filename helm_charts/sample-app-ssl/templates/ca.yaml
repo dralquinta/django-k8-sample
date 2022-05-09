@@ -1,0 +1,7 @@
+apiVersion: v1                                                                                                                
+kind: ConfigMap                                                                                                              
+metadata:                                                                                                                                                                                                    
+  name: ca-pemstore                                                                                                          
+  namespace: default
+data:
+  ca_bundle.crt: {{.Values.caBundle}}
